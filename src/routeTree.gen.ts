@@ -10,33 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicReadPdfRouteImport } from './routes/api/public/read/pdf'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicReadPdfRoute = ApiPublicReadPdfRouteImport.update({
+  id: '/api/public/read/pdf',
+  path: '/api/public/read/pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/api/public/read/pdf'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/api/public/read/pdf'
+  id: '__root__' | '/' | '/api/public/read/pdf'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiPublicReadPdfRoute: typeof ApiPublicReadPdfRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/read/pdf': {
+      id: '/api/public/read/pdf'
+      path: '/api/public/read/pdf'
+      fullPath: '/api/public/read/pdf'
+      preLoaderRoute: typeof ApiPublicReadPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiPublicReadPdfRoute: ApiPublicReadPdfRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
