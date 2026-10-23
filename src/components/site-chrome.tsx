@@ -80,6 +80,3 @@ export function SiteFooter() {
   );
 }
 
-export function setFeedbackSetter() {
-  // Placeholder to keep imports tidy if feedback helpers move here later.
-}

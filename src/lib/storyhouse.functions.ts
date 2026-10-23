@@ -16,7 +16,7 @@ import {
   findBook,
   getChapter,
   getCollectionStats,
-  getLibrary,
+  getLibraryData,
   searchChapters,
   type BookSummary,
   type SearchHit,
@@ -98,7 +98,7 @@ export const getMe = createServerFn({ method: "GET" }).handler(async (): Promise
 });
 
 export const getLibrary = createServerFn({ method: "GET" }).handler(async (): Promise<{ books: BookSummary[] }> => {
-  return { books: getLibrary() };
+  return { books: getLibraryData() };
 });
 
 export const getStoryChapter = createServerFn({ method: "GET" })
