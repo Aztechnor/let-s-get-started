@@ -10,11 +10,29 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CardsRouteImport } from './routes/cards'
+import { Route as ReadRouteImport } from './routes/read'
 import { Route as ApiPublicReadPdfRouteImport } from './routes/api/public/read/pdf'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CardsRoute = CardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReadRoute = ReadRouteImport.update({
+  id: '/read',
+  path: '/read',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicReadPdfRoute = ApiPublicReadPdfRouteImport.update({
@@ -25,27 +43,39 @@ const ApiPublicReadPdfRoute = ApiPublicReadPdfRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/cards': typeof CardsRoute
+  '/read': typeof ReadRoute
   '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/cards': typeof CardsRoute
+  '/read': typeof ReadRoute
   '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/cards': typeof CardsRoute
+  '/read': typeof ReadRoute
   '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/read/pdf'
+  fullPaths: '/' | '/admin' | '/cards' | '/read' | '/api/public/read/pdf'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/read/pdf'
-  id: '__root__' | '/' | '/api/public/read/pdf'
+  to: '/' | '/admin' | '/cards' | '/read' | '/api/public/read/pdf'
+  id: '__root__' | '/' | '/admin' | '/cards' | '/read' | '/api/public/read/pdf'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  CardsRoute: typeof CardsRoute
+  ReadRoute: typeof ReadRoute
   ApiPublicReadPdfRoute: typeof ApiPublicReadPdfRoute
 }
 
@@ -56,6 +86,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cards': {
+      id: '/cards'
+      path: '/cards'
+      fullPath: '/cards'
+      preLoaderRoute: typeof CardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/read': {
+      id: '/read'
+      path: '/read'
+      fullPath: '/read'
+      preLoaderRoute: typeof ReadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/read/pdf': {
@@ -70,6 +121,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  CardsRoute: CardsRoute,
+  ReadRoute: ReadRoute,
   ApiPublicReadPdfRoute: ApiPublicReadPdfRoute,
 }
 export const routeTree = rootRouteImport
