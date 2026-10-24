@@ -42,7 +42,7 @@ export function SiteHeader({
           <Link to="/cards" className={active === "cards" ? "active" : undefined}>
             Quote studio
           </Link>
-          <Link to="/read" className={active === "read" ? "active" : undefined}>
+          <Link to="/read">
             Reader access
           </Link>
         </nav>

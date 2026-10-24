@@ -16,7 +16,7 @@ import {
   findBook,
   getChapter,
   getCollectionStats,
-  getLibraryData,
+  getLibrary as getLibraryData,
   searchChapters,
   type BookSummary,
   type SearchHit,
