@@ -353,3 +353,54 @@ export const adminDeleteReader = createServerFn({ method: "POST" })
     await logAction(admin.email, "reader_removed", email);
     return { ok: true };
   });
+
+export interface ProgressRow {
+  book_id: string;
+  chapter_index: number;
+  chapter_count: number;
+  furthest_index: number;
+  updated_at: string;
+}
+
+/** Reading progress for the signed-in reader, one row per book. */
+export const getMyProgress = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ progress: ProgressRow[] }> => {
+    const session = await requireReader();
+    const db = await getAdminDb();
+    const { data } = await db
+      .from("reading_progress")
+      .select("book_id, chapter_index, chapter_count, furthest_index, updated_at")
+      .eq("email", session.email)
+      .order("updated_at", { ascending: false });
+    return { progress: (data ?? []) as ProgressRow[] };
+  },
+);
+
+export const saveMyProgress = createServerFn({ method: "POST" })
+  .inputValidator((input: { bookId: string; chapterIndex: number }) => input)
+  .handler(async ({ data }) => {
+    const session = await requireReader();
+    const book = findBook(data.bookId);
+    if (!book) throw new Error("Book not found.");
+    const count = book.chapters.length;
+    const index = Math.max(0, Math.min(Math.floor(Number(data.chapterIndex) || 0), count - 1));
+    const db = await getAdminDb();
+    const { data: existing } = await db
+      .from("reading_progress")
+      .select("furthest_index")
+      .eq("email", session.email)
+      .eq("book_id", book.id)
+      .maybeSingle();
+    await db.from("reading_progress").upsert(
+      {
+        email: session.email,
+        book_id: book.id,
+        chapter_index: index,
+        chapter_count: count,
+        furthest_index: Math.max(existing?.furthest_index ?? 0, index),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "email,book_id" },
+    );
+    return { ok: true };
+  });

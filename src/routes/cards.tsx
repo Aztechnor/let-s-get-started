@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { SiteHeader } from "@/components/site-chrome";
+import { toast, ToastHost } from "@/components/toast";
 
 export const Route = createFileRoute("/cards")({
   head: () => ({
@@ -14,136 +17,395 @@ export const Route = createFileRoute("/cards")({
   component: CardsPage,
 });
 
-import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
-import { logout, getMe } from "@/lib/storyhouse.functions";
-import { SiteHeader } from "@/components/site-chrome";
-import { toast, ToastHost } from "@/components/toast";
+type TemplateId = "bluehour" | "wildflower" | "archive" | "redacted" | "moonlit" | "postcard";
+
+const QUOTES: { quote: string; source: string; book: "under" | "spook"; template: TemplateId }[] = [
+  { quote: "To have loved and lost is better than to have never loved at all.", source: "UNDER BLUE SKIES · EPIGRAPH", book: "under", template: "wildflower" },
+  { quote: "It's easy to love the idea of someone, but much harder to love the reality.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "bluehour" },
+  { quote: "Some wounds don’t heal. Some scars don’t fade.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "moonlit" },
+  { quote: "For every dawn follows darkest day.", source: "UNDER BLUE SKIES · THE OPENING POEM", book: "under", template: "postcard" },
+  { quote: "Promise me this, that you’ll never be afraid to be human.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "wildflower" },
+  { quote: "Land that sits too quietly.", source: "SPOOK · THE LAND", book: "spook", template: "archive" },
+  { quote: "The Great North Road does not forget. It swallows.", source: "SPOOK · THE HITCHHIKER", book: "spook", template: "redacted" },
+  { quote: "The land remembers. It sends its teeth.", source: "SPOOK · NANDI BEAR", book: "spook", template: "moonlit" },
+  { quote: "You cannot build healing on a place that has not yet finished its grieving.", source: "SPOOK · THE LAND", book: "spook", template: "archive" },
+  { quote: "Every story, a different document.", source: "SPOOK · COVER LINE", book: "spook", template: "redacted" },
+];
+
+const TEMPLATES: { id: TemplateId; name: string; desc: string }[] = [
+  { id: "bluehour", name: "Blue Hour", desc: "Soft, open, and hopeful." },
+  { id: "wildflower", name: "Wildflower", desc: "Warm paper, handwritten feeling." },
+  { id: "archive", name: "Archive File", desc: "Dark, precise, and recovered." },
+  { id: "redacted", name: "Redacted", desc: "A rough-edged case file." },
+  { id: "moonlit", name: "Moonlit", desc: "Night sky and quiet mystery." },
+  { id: "postcard", name: "Postcard", desc: "A little note from somewhere." },
+];
+
+// Card artwork colours are part of each printed design (canvas pixels), not app theme tokens.
+const PALETTES: Record<TemplateId, { bg1: string; bg2: string; ink: string; line: string; accent: string }> = {
+  bluehour: { bg1: "#eef3ef", bg2: "#c4dce0", ink: "#2a4a5b", line: "#6b99a8", accent: "#b78768" },
+  wildflower: { bg1: "#f7f0df", bg2: "#eadfc6", ink: "#355545", line: "#91a68f", accent: "#719879" },
+  archive: { bg1: "#252824", bg2: "#171a18", ink: "#dfc589", line: "#947d4d", accent: "#a98c52" },
+  redacted: { bg1: "#2a2825", bg2: "#161716", ink: "#efe4d0", line: "#aa6859", accent: "#c45e4f" },
+  moonlit: { bg1: "#41496c", bg2: "#191e34", ink: "#f2e9d8", line: "#9aa3ca", accent: "#d4bf8c" },
+  postcard: { bg1: "#f3f5ef", bg2: "#bdd8e0", ink: "#284b60", line: "#719bab", accent: "#d08c6a" },
+};
+
+interface CardOptions {
+  template: TemplateId;
+  quote: string;
+  attribution: string;
+  signature: string;
+  ornament: boolean;
+  number: number;
+}
+
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, outer: number, inner: number, points = 8) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const angle = -Math.PI / 2 + (i * Math.PI) / points;
+    const r = i % 2 ? inner : outer;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    if (!i) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function wrappedLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
+  canvas.width = 1080;
+  canvas.height = 1350;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const theme = o.template;
+  const p = PALETTES[theme];
+  const doc = theme === "archive" || theme === "redacted";
+  const sans = doc ? "monospace" : "Arial";
+
+  const grad = ctx.createLinearGradient(0, 0, 1080, 1350);
+  grad.addColorStop(0, p.bg1);
+  grad.addColorStop(1, p.bg2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1080, 1350);
+
+  if (theme === "bluehour" || theme === "postcard") {
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#fff";
+    for (const [x, y, r] of [[150, 220, 80], [820, 280, 115], [920, 1020, 60]]) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = p.accent;
+    ctx.beginPath();
+    ctx.arc(855, 200, 31, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    if (theme === "postcard") {
+      // Airmail stripe border and stamp box.
+      const stripes = ["#c4574a", "#f3f5ef", "#3f6d8a", "#f3f5ef"];
+      for (let x = 40, i = 0; x < 1040; x += 36, i++) {
+        ctx.fillStyle = stripes[i % 4];
+        ctx.fillRect(x, 30, 36, 14);
+        ctx.fillRect(x, 1306, 36, 14);
+      }
+      ctx.strokeStyle = p.line;
+      ctx.setLineDash([6, 6]);
+      ctx.strokeRect(860, 1090, 108, 128);
+      ctx.setLineDash([]);
+    }
+  } else if (theme === "wildflower") {
+    ctx.strokeStyle = "#83a389";
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.45;
+    for (let i = 0; i < 7; i++) {
+      const x = 112 + i * 145;
+      ctx.beginPath();
+      ctx.moveTo(x, 1030);
+      ctx.quadraticCurveTo(x + 12, 1110, x - 3, 1205);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(x - 15, 1100, 16, 34, -0.6, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(x + 18, 1150, 15, 28, 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else if (theme === "moonlit") {
+    ctx.fillStyle = "rgba(245,239,215,.8)";
+    for (let i = 0; i < 65; i++) {
+      const x = ((i * 197) % 1020) + 30;
+      const y = ((i * 317) % 900) + 40;
+      drawStar(ctx, x, y, i % 3 === 0 ? 4 : 2, i % 3 === 0 ? 1.4 : 1, 4);
+    }
+    ctx.fillStyle = "#f3e6bd";
+    ctx.beginPath();
+    ctx.arc(830, 210, 65, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#343a5b";
+    ctx.beginPath();
+    ctx.arc(860, 185, 63, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (doc) {
+    ctx.strokeStyle = p.line;
+    ctx.lineWidth = 2;
+    ctx.setLineDash(theme === "redacted" ? [7, 9] : []);
+    ctx.strokeRect(62, 62, 956, 1226);
+    ctx.setLineDash([]);
+    if (theme === "redacted") {
+      ctx.fillStyle = "#a64238";
+      ctx.globalAlpha = 0.78;
+      ctx.fillRect(120, 210, 235, 17);
+      ctx.fillRect(710, 1025, 245, 14);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  ctx.strokeStyle = p.line;
+  ctx.lineWidth = theme === "redacted" ? 2 : 1.4;
+  ctx.globalAlpha = 0.8;
+  ctx.strokeRect(63, 63, 954, 1224);
+  ctx.globalAlpha = 1;
+  if (theme === "wildflower") {
+    ctx.lineWidth = 1;
+    ctx.strokeRect(82, 82, 916, 1186);
+  }
+
+  ctx.fillStyle = p.ink;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `700 18px ${sans}`;
+  ctx.fillText(doc ? "RECOVERED DOCUMENT / STORYHOUSE" : theme === "postcard" ? "GREETINGS FROM STORYHOUSE" : "A LINE TO KEEP", 112, 135);
+  ctx.textAlign = "right";
+  ctx.font = `600 16px ${sans}`;
+  ctx.fillText(`${String(o.number).padStart(2, "0")} / ✳`, 968, 135);
+
+  if (o.ornament) {
+    ctx.fillStyle = p.accent;
+    if (theme === "moonlit") drawStar(ctx, 540, 310, 34, 14, 8);
+    else drawStar(ctx, 540, 310, 26, 11, 8);
+  }
+
+  const quote = `“${o.quote || "Write the line you want to keep…"}”`;
+  const family = doc ? "monospace" : "Georgia, serif";
+  const italic = theme === "wildflower" || theme === "postcard" ? "italic " : "";
+  let fontSize = doc ? 55 : 67;
+  let lines: string[] = [];
+  do {
+    ctx.font = `${italic}${fontSize}px ${family}`;
+    lines = wrappedLines(ctx, quote, 805);
+    if (lines.length > 6) fontSize -= 3;
+    else break;
+  } while (fontSize > 37);
+  const lineHeight = fontSize * (doc ? 1.4 : 1.27);
+  let y = 670 - (lines.length * lineHeight) / 2 + fontSize * 0.75;
+  ctx.textAlign = "center";
+  ctx.fillStyle = p.ink;
+  for (const line of lines) {
+    ctx.fillText(line, 540, y, 850);
+    y += lineHeight;
+  }
+
+  ctx.strokeStyle = p.ink;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(420, 935);
+  ctx.lineTo(660, 935);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.font = `700 19px ${sans}`;
+  const attribution = (o.attribution.trim() || "STORYHOUSE").toUpperCase();
+  ctx.fillText(attribution.length > 54 ? attribution.slice(0, 51) + "…" : attribution, 540, 980, 820);
+  if (o.signature.trim()) {
+    ctx.font = "italic 24px Georgia, serif";
+    ctx.globalAlpha = 0.8;
+    ctx.fillText(o.signature.trim().slice(0, 48), 540, 1030, 790);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = "left";
+  ctx.font = `700 15px ${sans}`;
+  ctx.fillText("STORYHOUSE", 112, 1210);
+  ctx.textAlign = "right";
+  ctx.font = `600 13px ${sans}`;
+  ctx.fillText("STORIES THAT STAY", 968, 1210);
+}
+
+function safeFileName(text: string) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "storyhouse-quote";
+}
+
+function TemplateSwatch({ id }: { id: TemplateId }) {
+  const p = PALETTES[id];
+  return (
+    <span
+      aria-hidden
+      className="block h-10 w-10 shrink-0 rounded-md border"
+      style={{ background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`, boxShadow: `inset 0 0 0 3px ${p.accent}55` }}
+    />
+  );
+}
 
 function CardsPage() {
-  const getMeFn = useServerFn(getMe);
-  const logoutFn = useServerFn(logout);
-  const [quote, setQuote] = useState("");
-  const [attribution, setAttribution] = useState("");
+  const [selected, setSelected] = useState(1);
+  const [template, setTemplate] = useState<TemplateId>(QUOTES[1].template);
+  const [custom, setCustom] = useState("");
+  const [attribution, setAttribution] = useState(QUOTES[1].source);
+  const [signature, setSignature] = useState("");
+  const [ornament, setOrnament] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const options: CardOptions = {
+    template,
+    quote: (custom.trim() || QUOTES[selected]?.quote || "").trim(),
+    attribution,
+    signature,
+    ornament,
+    number: selected + 1,
+  };
+
   useEffect(() => {
-    getMeFn().catch(() => undefined);
-  }, [getMeFn]);
+    if (canvasRef.current) drawCard(canvasRef.current, options);
+  });
 
-  const draw = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    canvas.width = 1080;
-    canvas.height = 1350;
-    ctx.fillStyle = "#f6f3ec";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#b08d57";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(70, 70, canvas.width - 140, canvas.height - 140);
-
-    const text = quote.trim() || "Write the line you want to keep…";
-    ctx.fillStyle = "#2b2721";
-    ctx.font = "italic 44px Georgia, serif";
-    ctx.textAlign = "center";
-    wrapText(ctx, `“${text}”`, canvas.width / 2, 320, canvas.width - 260, 64);
-    ctx.font = "24px Georgia, serif";
-    ctx.fillStyle = "#8a7a63";
-    ctx.fillText(attribution.trim() ? `— ${attribution.trim()}` : "— Storyhouse", canvas.width / 2, canvas.height - 180);
+  const makeBlob = async () => {
+    if (document.fonts?.ready) await document.fonts.ready;
+    const canvas = document.createElement("canvas");
+    drawCard(canvas, options);
+    return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   };
 
-  const download = () => {
-    draw();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const link = document.createElement("a");
-    link.download = "storyhouse-quote.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+  const download = async () => {
+    const blob = await makeBlob();
+    if (!blob) return toast("The card image could not be created in this browser.");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safeFileName(attribution)}-${template}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast("Your 1080 × 1350 card is ready.");
   };
+
+  const share = async () => {
+    const blob = await makeBlob();
+    if (!blob) return toast("The card image could not be created.");
+    const file = new File([blob], `${safeFileName(attribution)}.png`, { type: "image/png" });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "A line to keep · Storyhouse", text: options.quote });
+      } catch {
+        /* share sheet dismissed */
+      }
+    } else {
+      await download();
+    }
+  };
+
+  const field = "w-full rounded-lg border border-input bg-card px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <ToastHost />
       <SiteHeader active="cards" />
-      <main className="mx-auto grid w-full max-w-5xl gap-10 px-6 pb-24 pt-12 md:grid-cols-2">
-        <section>
-          <h1 className="text-3xl font-semibold">Quote studio</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Lift a line from the reading room and turn it into a card worth keeping.
-          </p>
-          <textarea
-            value={quote}
-            onChange={(e) => setQuote(e.target.value)}
-            rows={5}
-            placeholder="Paste or write your quote…"
-            className="mt-8 w-full rounded-lg border border-input bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          <input
-            value={attribution}
-            onChange={(e) => setAttribution(e.target.value)}
-            placeholder="Attribution (optional)"
-            className="mt-4 w-full rounded-lg border border-input bg-card px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={download}
-              className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
+      <main className="mx-auto grid w-full max-w-6xl gap-10 px-6 pb-24 pt-12 lg:grid-cols-[1fr_minmax(0,420px)]">
+        <section className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-semibold">Quote studio</h1>
+            <p className="mt-3 text-sm text-muted-foreground">Pick a line, choose a design, and download a card worth keeping.</p>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Design</p>
+            <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
+              {TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  role="radio"
+                  aria-checked={template === t.id}
+                  onClick={() => setTemplate(t.id)}
+                  className={
+                    "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors " +
+                    (template === t.id ? "border-primary ring-2 ring-primary" : "hover:bg-accent")
+                  }
+                >
+                  <TemplateSwatch id={t.id} />
+                  <span>
+                    <b className="text-sm">{t.name}</b>
+                    <br />
+                    <small className="text-muted-foreground">{t.desc}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="block space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Choose a line</span>
+            <select
+              value={selected}
+              onChange={(e) => {
+                const i = Number(e.target.value);
+                setSelected(i);
+                setCustom("");
+                setAttribution(QUOTES[i].source);
+                setTemplate(QUOTES[i].template);
+              }}
+              className={field}
             >
-              Download PNG
+              {QUOTES.map((q, i) => (
+                <option key={i} value={i}>
+                  {String(i + 1).padStart(2, "0")} · {q.quote.length > 65 ? q.quote.slice(0, 62) + "…" : q.quote} — {q.book === "spook" ? "SPOOK" : "UNDER BLUE SKIES"}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <textarea value={custom} onChange={(e) => setCustom(e.target.value)} rows={3} placeholder="…or write your own quote" className={field} />
+          <input value={attribution} onChange={(e) => setAttribution(e.target.value)} placeholder="Attribution" className={field} />
+          <input value={signature} onChange={(e) => setSignature(e.target.value)} placeholder="Signature (optional)" className={field} />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={ornament} onChange={(e) => setOrnament(e.target.checked)} />
+            Show star ornament
+          </label>
+
+          <div className="flex gap-3">
+            <button onClick={download} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground">
+              Download PNG ↓
             </button>
-            <button
-              onClick={() => logoutFn().then(() => toast("Signed out.")).catch(() => undefined)}
-              className="rounded-lg border px-5 py-2 text-sm"
-            >
-              Sign out
+            <button onClick={share} className="rounded-lg border px-5 py-2 text-sm">
+              Share
             </button>
           </div>
         </section>
-        <section className="flex items-center justify-center">
-          <canvas
-            ref={canvasRef}
-            onInput={draw}
-            className="aspect-[4/5] w-full max-w-sm rounded-xl border shadow-sm"
-            aria-label="Quote card preview"
-          />
-          <PreviewDrawer onChange={draw} />
+
+        <section className="lg:sticky lg:top-8 lg:self-start">
+          <canvas ref={canvasRef} className="aspect-[4/5] w-full rounded-xl border shadow-sm" aria-label="Quote card preview" />
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            {TEMPLATES.find((t) => t.id === template)?.name} — {TEMPLATES.find((t) => t.id === template)?.desc}
+          </p>
         </section>
       </main>
     </div>
   );
 }
-
-function PreviewDrawer({ onChange }: { onChange: () => void }) {
-  useEffect(() => {
-    onChange();
-  }, [onChange]);
-  return null;
-}
-
-function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  startY: number,
-  maxWidth: number,
-  lineHeight: number,
-) {
-  const words = text.split(" ");
-  let line = "";
-  let y = startY;
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxWidth && line) {
-      ctx.fillText(line, x, y);
-      line = word;
-      y += lineHeight;
-    } else {
-      line = test;
-    }
-  }
-  if (line) ctx.fillText(line, x, y);
-}
-
