@@ -95,6 +95,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reading_progress: {
+        Row: {
+          book_id: string
+          chapter_count: number
+          chapter_index: number
+          email: string
+          furthest_index: number
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          chapter_count?: number
+          chapter_index?: number
+          email: string
+          furthest_index?: number
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          chapter_count?: number
+          chapter_index?: number
+          email?: string
+          furthest_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
