@@ -112,10 +112,7 @@ function ReadPage() {
               {books.map((b) => (
                 <button
                   key={b.id}
-                  onClick={() => {
-                    setBookId(b.id);
-                    setChapterIndex(0);
-                  }}
+                  onClick={() => openBook(b.id)}
                   className={
                     "rounded-full border px-4 py-2 text-sm transition-colors " +
                     (bookId === b.id ? "bg-primary text-primary-foreground" : "hover:bg-accent")
@@ -163,10 +160,69 @@ function ReadPage() {
           )}
 
           {!book && me.authenticated && (
-            <p className="mt-16 text-center text-sm text-muted-foreground">Choose a book above to start reading.</p>
+            <section className="mt-10">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                {progress.length ? "Welcome back — pick up where you left off" : "Choose a book to start reading"}
+              </p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {books.map((b) => {
+                  const p = progress.find((row) => row.book_id === b.id);
+                  const total = b.chapters.length;
+                  const pct = p ? Math.round(((p.furthest_index + 1) / total) * 100) : 0;
+                  const current = p ? b.chapters[p.chapter_index] : null;
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => openBook(b.id)}
+                      className="rounded-xl border bg-card p-5 text-left transition-colors hover:bg-accent"
+                    >
+                      <h2 className="text-lg font-semibold">{b.title}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {current ? `Continue: ${current.title}` : `${total} chapters · not started`}
+                      </p>
+                      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {p ? `${pct}% read · chapter ${p.chapter_index + 1} of ${total}` : "Start reading →"}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           )}
 
-          {book && !story && <p className="mt-16 text-center text-sm text-muted-foreground">Opening the first story…</p>}
+          {book && (
+            <div className="mt-8">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Your progress in {book.title}</span>
+                <span>
+                  {chapterIndex + 1} / {book.chapters.length}
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${((chapterIndex + 1) / book.chapters.length) * 100}%` }}
+                />
+              </div>
+              <select
+                aria-label="Jump to chapter"
+                value={chapterIndex}
+                onChange={(e) => setChapterIndex(Number(e.target.value))}
+                className="mt-3 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm"
+              >
+                {book.chapters.map((c, i) => (
+                  <option key={i} value={i}>
+                    {String(i + 1).padStart(2, "0")} · {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {book && !story && <p className="mt-16 text-center text-sm text-muted-foreground">Opening your place…</p>}
 
           {book && story && (
             <article className="mt-10">
