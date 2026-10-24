@@ -19,10 +19,13 @@ import { useEffect, useState } from "react";
 import {
   getLibrary,
   getMe,
+  getMyProgress,
   getStoryChapter,
   requestCode,
+  saveMyProgress,
   searchTheLibrary,
   verifyCode,
+  type ProgressRow,
 } from "@/lib/storyhouse.functions";
 import { SiteHeader } from "@/components/site-chrome";
 import { toast, ToastHost } from "@/components/toast";
@@ -45,6 +48,9 @@ function ReadPage() {
   const getLibraryFn = useServerFn(getLibrary);
   const getStoryFn = useServerFn(getStoryChapter);
   const searchFn = useServerFn(searchTheLibrary);
+  const getProgressFn = useServerFn(getMyProgress);
+  const saveProgressFn = useServerFn(saveMyProgress);
+  const [progress, setProgress] = useState<ProgressRow[]>([]);
 
   useEffect(() => {
     getMeFn().then(setMe).catch(() => setMe({ authenticated: false, email: "", role: "" }));
@@ -53,16 +59,31 @@ function ReadPage() {
   useEffect(() => {
     if (!me?.authenticated) return;
     getLibraryFn().then((r) => setBooks(r.books)).catch(() => setBooks([]));
-  }, [me?.authenticated, getLibraryFn]);
+    getProgressFn().then((r) => setProgress(r.progress)).catch(() => setProgress([]));
+  }, [me?.authenticated, getLibraryFn, getProgressFn]);
 
   const book = books.find((b) => b.id === bookId) ?? null;
+
+  const openBook = (id: string) => {
+    const saved = progress.find((p) => p.book_id === id);
+    setStory(null);
+    setBookId(id);
+    setChapterIndex(saved?.chapter_index ?? 0);
+  };
 
   useEffect(() => {
     if (!bookId) return;
     getStoryFn({ data: { bookId, chapterIndex } })
-      .then(setStory)
+      .then((s) => {
+        setStory(s);
+        window.scrollTo({ top: 0 });
+        saveProgressFn({ data: { bookId, chapterIndex } })
+          .then(() => getProgressFn())
+          .then((r) => setProgress(r.progress))
+          .catch(() => undefined);
+      })
       .catch((e) => toast(e instanceof Error ? e.message : "Could not open that story."));
-  }, [bookId, chapterIndex, getStoryFn]);
+  }, [bookId, chapterIndex, getStoryFn, saveProgressFn, getProgressFn]);
 
   // Debounced full-text search once a query is long enough.
   useEffect(() => {
