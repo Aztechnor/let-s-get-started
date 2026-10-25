@@ -108,7 +108,7 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
   if (theme === "bluehour" || theme === "postcard") {
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = "#fff";
-    for (const [x, y, r] of [[150, 220, 80], [820, 280, 115], [920, 1020, 60]]) {
+    for (const [x, y, r] of [[150, 220, 80], [820, 280, 115], [920, 1020, 60]] as const) {
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
@@ -123,7 +123,7 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
       // Airmail stripe border and stamp box.
       const stripes = ["#c4574a", "#f3f5ef", "#3f6d8a", "#f3f5ef"];
       for (let x = 40, i = 0; x < 1040; x += 36, i++) {
-        ctx.fillStyle = stripes[i % 4];
+        ctx.fillStyle = stripes[i % 4] ?? "#fff";
         ctx.fillRect(x, 30, 36, 14);
         ctx.fillRect(x, 1306, 36, 14);
       }
@@ -268,9 +268,9 @@ function TemplateSwatch({ id }: { id: TemplateId }) {
 
 function CardsPage() {
   const [selected, setSelected] = useState(1);
-  const [template, setTemplate] = useState<TemplateId>(QUOTES[1].template);
+  const [template, setTemplate] = useState<TemplateId>("bluehour");
   const [custom, setCustom] = useState("");
-  const [attribution, setAttribution] = useState(QUOTES[1].source);
+  const [attribution, setAttribution] = useState(QUOTES[1]?.source ?? "");
   const [signature, setSignature] = useState("");
   const [ornament, setOrnament] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -368,8 +368,8 @@ function CardsPage() {
                 const i = Number(e.target.value);
                 setSelected(i);
                 setCustom("");
-                setAttribution(QUOTES[i].source);
-                setTemplate(QUOTES[i].template);
+                setAttribution(QUOTES[i]?.source ?? "");
+                setTemplate(QUOTES[i]?.template ?? "bluehour");
               }}
               className={field}
             >
