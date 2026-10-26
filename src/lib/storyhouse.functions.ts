@@ -251,23 +251,26 @@ export interface AdminSummary {
   active_readers: number;
   book_count: number;
   story_count: number;
+  readers_reading: number;
   recent_activity: AuditEntry[];
 }
 
 export const adminSummary = createServerFn({ method: "GET" }).handler(async (): Promise<AdminSummary> => {
   await requireAdmin();
   const db = await getAdminDb();
-  const [total, active, recent, stats] = await Promise.all([
+  const [total, active, recent, stats, progressEmails] = await Promise.all([
     db.from("allowed_readers").select("email", { count: "exact" }).then((r) => r.count ?? 0),
     db.from("allowed_readers").select("email", { count: "exact" }).eq("active", true).then((r) => r.count ?? 0),
     db.from("audit_log").select("*").order("id", { ascending: false }).limit(12),
     Promise.resolve(getCollectionStats()),
+    db.from("reading_progress").select("email"),
   ]);
   return {
     total_readers: total,
     active_readers: active,
     book_count: stats.bookCount,
     story_count: stats.storyCount,
+    readers_reading: new Set((progressEmails.data ?? []).map((r) => r.email)).size,
     recent_activity: (recent.data ?? []) as AuditEntry[],
   };
 });
@@ -282,13 +285,52 @@ export interface ReaderRow {
   last_login_at: string | null;
 }
 
-export const adminReaders = createServerFn({ method: "GET" }).handler(async (): Promise<{ readers: ReaderRow[] }> => {
-  await requireAdmin();
-  const db = await getAdminDb();
-  const { data, error } = await db.from("allowed_readers").select("*").order("added_at", { ascending: false });
-  if (error) throw new Error("Could not load the reader list.");
-  return { readers: (data ?? []) as ReaderRow[] };
-});
+export interface ReaderProgressInfo {
+  book_id: string;
+  book_title: string;
+  chapter_index: number;
+  chapter_count: number;
+  furthest_index: number;
+  percent: number;
+  updated_at: string;
+}
+
+export const adminReaders = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ readers: ReaderRow[]; progress: Record<string, ReaderProgressInfo> }> => {
+    await requireAdmin();
+    const db = await getAdminDb();
+    const { data, error } = await db.from("allowed_readers").select("*").order("added_at", { ascending: false });
+    if (error) throw new Error("Could not load the reader list.");
+    const readers = (data ?? []) as ReaderRow[];
+
+    // Latest reading position per reader, one row per email.
+    const emails = readers.map((r) => r.email);
+    const progress: Record<string, ReaderProgressInfo> = {};
+    if (emails.length) {
+      const { data: rows } = await db
+        .from("reading_progress")
+        .select("email, book_id, chapter_index, chapter_count, furthest_index, updated_at")
+        .in("email", emails)
+        .order("updated_at", { ascending: false });
+      for (const row of (rows ?? []) as (ProgressRow & { email: string })[]) {
+        if (progress[row.email]) continue; // rows come newest-first, keep the latest only
+        const book = findBook(row.book_id);
+        const total = row.chapter_count || book?.chapters.length || 0;
+        const index = Math.min(row.chapter_index, Math.max(0, total - 1));
+        progress[row.email] = {
+          book_id: row.book_id,
+          book_title: book?.title ?? row.book_id,
+          chapter_index: index,
+          chapter_count: total,
+          furthest_index: row.furthest_index,
+          percent: total ? Math.round(((row.furthest_index + 1) / total) * 100) : 0,
+          updated_at: row.updated_at,
+        };
+      }
+    }
+    return { readers, progress };
+  },
+);
 
 export const adminAddReader = createServerFn({ method: "POST" })
   .inputValidator((input: { email: string; display_name?: string; note?: string }) => input)
