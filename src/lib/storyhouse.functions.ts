@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { parseBulkInviteEmails, type BulkInviteResult } from "./bulk-invitations";
 import {
   clearSession,
   createSession,
@@ -360,6 +361,71 @@ export const adminAddReader = createServerFn({ method: "POST" })
     }
     await logAction(admin.email, "reader_whitelisted", email, note);
     return { ok: true, email };
+  });
+
+export const adminBulkAddReaders = createServerFn({ method: "POST" })
+  .inputValidator((input: { emails: string }) => input)
+  .handler(async ({ data }): Promise<{ results: BulkInviteResult[] }> => {
+    const admin = await requireAdmin();
+    const emails = parseBulkInviteEmails(data.emails ?? "");
+    if (!emails.length) throw new Error("Enter at least one email address.");
+
+    const adminEmail = emailNormalize(process.env["ADMIN_EMAIL"] ?? "");
+    const statusByEmail = new Map<string, BulkInviteResult["status"]>();
+    const eligible: string[] = [];
+    for (const email of emails) {
+      if (!validEmail(email)) statusByEmail.set(email, "invalid");
+      else if (email === adminEmail) statusByEmail.set(email, "admin_account");
+      else eligible.push(email);
+    }
+
+    if (eligible.length) {
+      const db = await getAdminDb();
+      const { data: existing, error: lookupError } = await db
+        .from("allowed_readers")
+        .select("email, active")
+        .in("email", eligible);
+      if (lookupError) throw new Error("Could not check the reader list. No invitations were made.");
+
+      const existingByEmail = new Map((existing ?? []).map((reader) => [reader.email, reader.active]));
+      const toReactivate: string[] = [];
+      const toInvite: string[] = [];
+      for (const email of eligible) {
+        if (existingByEmail.get(email) === true) statusByEmail.set(email, "already_active");
+        else if (existingByEmail.has(email)) toReactivate.push(email);
+        else toInvite.push(email);
+      }
+
+      if (toReactivate.length) {
+        const { error } = await db.from("allowed_readers").update({ active: true }).in("email", toReactivate);
+        for (const email of toReactivate) statusByEmail.set(email, error ? "failed" : "reactivated");
+        if (!error) {
+          await Promise.all(toReactivate.map((email) => logAction(admin.email, "reader_activated", email)));
+        }
+      }
+
+      if (toInvite.length) {
+        const addedAt = new Date().toISOString();
+        const { error } = await db.from("allowed_readers").insert(
+          toInvite.map((email) => ({
+            email,
+            display_name: "",
+            note: "",
+            active: true,
+            added_by: admin.email,
+            added_at: addedAt,
+          })),
+        );
+        for (const email of toInvite) statusByEmail.set(email, error ? "failed" : "invited");
+        if (!error) {
+          await Promise.all(toInvite.map((email) => logAction(admin.email, "reader_whitelisted", email, "Bulk invitation")));
+        }
+      }
+    }
+
+    return {
+      results: emails.map((email) => ({ email, status: statusByEmail.get(email) ?? "failed" })),
+    };
   });
 
 export const adminUpdateReader = createServerFn({ method: "POST" })

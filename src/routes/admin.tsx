@@ -13,7 +13,7 @@ export const Route = createFileRoute("/admin")({
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import {
-  adminAddReader,
+  adminBulkAddReaders,
   adminDeleteReader,
   adminLogin,
   adminReaders,
@@ -22,6 +22,7 @@ import {
   getMe,
   logout,
 } from "@/lib/storyhouse.functions";
+import type { BulkInviteResult, BulkInviteStatus } from "@/lib/bulk-invitations";
 import { SiteHeader } from "@/components/site-chrome";
 import { toast, ToastHost } from "@/components/toast";
 
@@ -104,7 +105,7 @@ function AdminPage() {
           </div>
         )}
 
-        <AddReaderForm
+        <BulkInviteForm
           onAdded={() =>
             refresh().catch((e) => toast(e instanceof Error ? e.message : "Could not refresh readers."))
           }
@@ -235,60 +236,75 @@ function AdminLogin({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
-function AddReaderForm({ onAdded }: { onAdded: () => void }) {
-  const addFn = useServerFn(adminAddReader);
-  const [email, setEmail] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [note, setNote] = useState("");
+function BulkInviteForm({ onAdded }: { onAdded: () => void }) {
+  const inviteFn = useServerFn(adminBulkAddReaders);
+  const [emails, setEmails] = useState("");
+  const [results, setResults] = useState<BulkInviteResult[]>([]);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      await addFn({ data: { email, display_name: displayName, note } });
-      toast(`${email} can now request a sign-in code.`);
-      setEmail("");
-      setDisplayName("");
-      setNote("");
-      onAdded();
+      const response = await inviteFn({ data: { emails } });
+      setResults(response.results);
+      const invited = response.results.filter((result) => result.status === "invited").length;
+      const reactivated = response.results.filter((result) => result.status === "reactivated").length;
+      toast(`${invited} invited · ${reactivated} reactivated · ${response.results.length - invited - reactivated} unchanged or skipped`);
+      if (invited || reactivated) onAdded();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Could not add that reader.");
+      toast(err instanceof Error ? err.message : "Could not invite those readers.");
     } finally {
       setBusy(false);
     }
   };
 
+  const labels: Record<BulkInviteStatus, string> = {
+    invited: "Invited",
+    reactivated: "Reactivated",
+    already_active: "Already active",
+    invalid: "Invalid email",
+    admin_account: "Administrator account",
+    failed: "Could not invite",
+  };
+
   return (
-    <form onSubmit={submit} className="mt-10 grid gap-3 rounded-xl border bg-card p-5 sm:grid-cols-4">
-      <input
-        required
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
-        className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-      />
-      <input
-        value={displayName}
-        onChange={(e) => setDisplayName(e.target.value)}
-        placeholder="Name (optional)"
-        className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-      />
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Note (optional)"
-        className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-      />
-      <button
-        type="submit"
-        disabled={busy}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-      >
-        {busy ? "Adding…" : "Whitelist reader"}
-      </button>
-    </form>
+    <section className="mt-10">
+      <h2 className="text-xl font-semibold">Invite readers</h2>
+      <form onSubmit={submit} className="mt-3 grid gap-3 rounded-xl border bg-card p-5 sm:grid-cols-[1fr_auto]">
+        <textarea
+          required
+          value={emails}
+          onChange={(e) => {
+            setEmails(e.target.value);
+            setResults([]);
+          }}
+          placeholder="Reader email addresses, separated by commas or new lines"
+          aria-label="Reader email addresses"
+          rows={4}
+          className="min-h-24 w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        >
+          {busy ? "Inviting…" : "Invite readers"}
+        </button>
+      </form>
+      {results.length > 0 && (
+        <ul aria-label="Invitation results" className="mt-3 divide-y rounded-lg border bg-card">
+          {results.map((result) => (
+            <li key={result.email} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+              <span className="break-all">{result.email}</span>
+              <span className={result.status === "invited" || result.status === "reactivated" ? "text-primary" : "text-muted-foreground"}>
+                {labels[result.status]}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
