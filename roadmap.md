@@ -11,3 +11,4 @@
 9. [x] Verify: build clean, reader code sign-in, chapter reading, progress save + restore on return
       (search, admin dashboard, and PDF access still to spot-check)
 10. [ ] Handoff: request existing reader list export (SQLite allowed_readers)
+11. [x] Admin dashboard: add bulk reader invitations with per-address results

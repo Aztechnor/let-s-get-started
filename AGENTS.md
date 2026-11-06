@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Bulk reader invitations use one admin-authenticated server function with per-address outcomes; shared parsing stays in a browser-safe utility for testability.
