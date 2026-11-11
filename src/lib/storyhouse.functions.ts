@@ -67,8 +67,7 @@ async function consumeAuthRateLimit(
   key: string,
   limit: number,
   windowSeconds: number,
-  message: string,
-): Promise<void> {
+): Promise<boolean> {
   const keyHash = await codeHash("rate-limit", key);
   const { data, error } = await db.rpc("consume_auth_rate_limit", {
     p_key_hash: keyHash,
@@ -79,7 +78,7 @@ async function consumeAuthRateLimit(
     console.error("Authentication rate-limit check failed", error);
     throw new Error("Sign-in is temporarily unavailable. Please try again.");
   }
-  if (!data) throw new Error(message);
+  return data === true;
 }
 
 /** Verifies the session cookie and that the reader is still whitelisted+active. */
@@ -152,7 +151,6 @@ export const requestCode = createServerFn({ method: "POST" })
     if (!validEmail(email)) throw new Error("Enter a valid email address.");
 
     const db = await getAdminDb();
-    await consumeAuthRateLimit(db, `otp-request:${email}`, 5, 60 * 60, "Too many sign-in codes requested. Please try again later.");
     const { data: allowed } = await db
       .from("allowed_readers")
       .select("active")
@@ -161,6 +159,9 @@ export const requestCode = createServerFn({ method: "POST" })
     // Keep the response generic so an unapproved email cannot be enumerated.
     const genericMessage = "If this email has reader access, a sign-in code will be issued.";
     if (!allowed?.active) return { message: genericMessage };
+    // Do not create rate-limit rows for arbitrary, non-whitelisted email addresses.
+    const withinRequestLimit = await consumeAuthRateLimit(db, `otp-request:${email}`, 5, 60 * 60);
+    if (!withinRequestLimit) return { message: genericMessage };
 
     const { data: existing } = await db
       .from("login_codes")
@@ -220,7 +221,6 @@ export const verifyCode = createServerFn({ method: "POST" })
       throw new Error("Enter the email address and six-digit code.");
     }
     const db = await getAdminDb();
-    await consumeAuthRateLimit(db, `otp-verify:${email}`, 10, 15 * 60, "Too many sign-in attempts. Please try again in 15 minutes.");
     const { data: allowed } = await db
       .from("allowed_readers")
       .select("active")
@@ -228,6 +228,11 @@ export const verifyCode = createServerFn({ method: "POST" })
       .maybeSingle();
     const { data: saved } = await db.from("login_codes").select("*").eq("email", email).maybeSingle();
     if (!allowed?.active || !saved) {
+      throw new Error("That sign-in code is invalid or has expired.");
+    }
+    // Only active, invited accounts create persistent rate-limit buckets.
+    const withinVerifyLimit = await consumeAuthRateLimit(db, `otp-verify:${email}`, 10, 15 * 60);
+    if (!withinVerifyLimit) {
       throw new Error("That sign-in code is invalid or has expired.");
     }
     if (saved.attempts >= MAX_ATTEMPTS) {
@@ -276,7 +281,8 @@ export const adminLogin = createServerFn({ method: "POST" })
       throw new Error("Admin access is not configured yet. The administrator credentials still need to be saved.");
     }
     const db = await getAdminDb();
-    await consumeAuthRateLimit(db, `admin-login:${adminEmail}`, 5, 15 * 60, "Too many administrator sign-in attempts. Try again in 15 minutes.");
+    const withinLoginLimit = await consumeAuthRateLimit(db, `admin-login:${adminEmail}`, 5, 15 * 60);
+    if (!withinLoginLimit) throw new Error("The email or password is incorrect.");
     const emailOk = safeEqual(emailNormalize(data.email), adminEmail);
     const passwordOk = safeEqual(data.password ?? "", adminPassword);
     if (!emailOk || !passwordOk) {

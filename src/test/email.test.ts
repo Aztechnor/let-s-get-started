@@ -277,3 +277,20 @@ describe("Error Classes", () => {
     });
   });
 });
+
+
+describe("email provider safety", () => {
+  const originalProvider = process.env.EMAIL_PROVIDER;
+
+  afterEach(() => {
+    if (originalProvider === undefined) delete process.env.EMAIL_PROVIDER;
+    else process.env.EMAIL_PROVIDER = originalProvider;
+  });
+
+  it("does not report the unimplemented SMTP provider as delivered", async () => {
+    process.env.EMAIL_PROVIDER = "smtp";
+    await expect(sendLoginCode("reader@example.com", "123456")).rejects.toThrow(
+      'Unsupported EMAIL_PROVIDER "smtp"',
+    );
+  });
+});

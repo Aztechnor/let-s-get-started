@@ -288,21 +288,21 @@ bun run test src/test/bulk-invitations.test.ts
 Create a Dockerfile:
 
 ```dockerfile
-FROM node:18-alpine
+FROM oven/bun:1
 WORKDIR /app
-COPY package*.json ./
-RUN bun install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run build
 EXPOSE 3000
-CMD ["npm", "run", "preview"]
+CMD ["bun", "run", "preview", "--host", "0.0.0.0"]
 ```
 
-Build and run:
+Build and run (provide the remaining application environment variables through your deployment secret manager):
 
 ```bash
 docker build -t storyhouse .
-docker run -p 3000:3000 -e ADMIN_EMAIL -e ADMIN_PASSWORD -e SESSION_SECRET storyhouse
+docker run -p 3000:3000 --env-file .env storyhouse
 ```
 
 ## Admin Guide
