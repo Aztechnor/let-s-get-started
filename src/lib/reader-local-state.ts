@@ -43,19 +43,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function parseReaderPreferences(value: unknown): ReaderPreferences {
   if (!isRecord(value)) return { ...DEFAULT_READER_PREFERENCES };
 
-  const fontSize = typeof value.fontSize === "number" && Number.isFinite(value.fontSize)
-    ? Math.round(Math.min(30, Math.max(14, value.fontSize)))
+  const fontSize = typeof value["fontSize"] === "number" && Number.isFinite(value["fontSize"])
+    ? Math.round(Math.min(30, Math.max(14, value["fontSize"])))
     : DEFAULT_READER_PREFERENCES.fontSize;
 
   return {
-    theme: themes.has(value.theme as ReaderTheme) ? value.theme as ReaderTheme : DEFAULT_READER_PREFERENCES.theme,
-    font: fonts.has(value.font as ReaderFont) ? value.font as ReaderFont : DEFAULT_READER_PREFERENCES.font,
+    theme: themes.has(value["theme"] as ReaderTheme) ? value["theme"] as ReaderTheme : DEFAULT_READER_PREFERENCES.theme,
+    font: fonts.has(value["font"] as ReaderFont) ? value["font"] as ReaderFont : DEFAULT_READER_PREFERENCES.font,
     fontSize,
-    lineSpacing: lineSpacings.has(value.lineSpacing as ReaderLineSpacing)
-      ? value.lineSpacing as ReaderLineSpacing
+    lineSpacing: lineSpacings.has(value["lineSpacing"] as ReaderLineSpacing)
+      ? value["lineSpacing"] as ReaderLineSpacing
       : DEFAULT_READER_PREFERENCES.lineSpacing,
-    contentWidth: contentWidths.has(value.contentWidth as ReaderContentWidth)
-      ? value.contentWidth as ReaderContentWidth
+    contentWidth: contentWidths.has(value["contentWidth"] as ReaderContentWidth)
+      ? value["contentWidth"] as ReaderContentWidth
       : DEFAULT_READER_PREFERENCES.contentWidth,
   };
 }
