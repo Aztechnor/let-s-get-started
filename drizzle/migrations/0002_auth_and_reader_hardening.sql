@@ -5,7 +5,7 @@ CREATE TABLE public.auth_rate_limits (
   key_hash TEXT PRIMARY KEY,
   attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
   window_started_at TIMESTAMPTZ NOT NULL DEFAULT pg_catalog.now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT pg_catalog.now()
 );
 
 ALTER TABLE public.auth_rate_limits ENABLE ROW LEVEL SECURITY;
@@ -30,7 +30,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.auth_rate_limits (key_hash, attempt_count, window_started_at, updated_at)
-  VALUES (p_key_hash, 0, now(), now())
+  VALUES (p_key_hash, 0, pg_catalog.now(), pg_catalog.now())
   ON CONFLICT (key_hash) DO NOTHING;
 
   SELECT attempt_count, window_started_at
@@ -39,9 +39,9 @@ BEGIN
     WHERE key_hash = p_key_hash
     FOR UPDATE;
 
-  IF v_window_started_at <= now() - pg_catalog.make_interval(secs => p_window_seconds) THEN
+  IF v_window_started_at <= pg_catalog.now() - pg_catalog.make_interval(secs => p_window_seconds) THEN
     UPDATE public.auth_rate_limits
-       SET attempt_count = 1, window_started_at = now(), updated_at = now()
+       SET attempt_count = 1, window_started_at = pg_catalog.now(), updated_at = pg_catalog.now()
      WHERE key_hash = p_key_hash;
     RETURN TRUE;
   END IF;
@@ -51,7 +51,7 @@ BEGIN
   END IF;
 
   UPDATE public.auth_rate_limits
-     SET attempt_count = attempt_count + 1, updated_at = now()
+     SET attempt_count = attempt_count + 1, updated_at = pg_catalog.now()
    WHERE key_hash = p_key_hash;
 
   RETURN TRUE;
