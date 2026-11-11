@@ -1,0 +1,52 @@
+# Netlify configuration for Storyhouse
+# This file tells Netlify how to build and deploy your app
+
+[build]
+  # Build command to run
+  command = "bun run build"
+  
+  # Directory to deploy (output of the build)
+  publish = "dist"
+  
+  # Node version to use
+  node_version = "20"
+
+[build.environment]
+  # Use bun for package management
+  NPM_FLAGS = "--production"
+
+[context.production.environment]
+  # Production environment variables
+  # These will be overridden by the Netlify UI settings
+  NODE_ENV = "production"
+
+# Redirects for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+
+# Environment variable templates
+# These are placeholders - you MUST set them in the Netlify UI
+# Go to: Site settings > Environment variables
+
+# [context.production.environment]
+# ADMIN_EMAIL = "your-email@example.com"
+# ADMIN_PASSWORD = "your-strong-password"
+# SESSION_SECRET = "your-32-char-random-secret"
+# SUPABASE_URL = "https://your-project-ref.supabase.co"
+# SUPABASE_ANON_KEY = "your-anon-key"
+# SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
+# EMAIL_PROVIDER = "resend"  # or "postmark", "supabase"
+# EMAIL_FROM = "storyhouse@your-domain.com"
+# RESEND_API_KEY = "re_your-api-key"  # Only if using Resend
+# POSTMARK_API_KEY = "your-postmark-key"  # Only if using Postmark
