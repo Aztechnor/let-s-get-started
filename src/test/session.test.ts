@@ -4,6 +4,9 @@ import {
   getSession,
   clearSession,
   safeEqual,
+  getSessionSecret,
+  signSessionPayload,
+  verifySessionToken,
 } from "@/lib/session.server";
 
 // Mock the cookie handling since we're in a test environment
@@ -112,5 +115,51 @@ describe("session utility functions", () => {
       });
       expect(cookies.name).toBe("hello world");
     });
+  });
+});
+
+
+describe("session signing hardening", () => {
+  const originalSecret = process.env["SESSION_SECRET"];
+
+  afterEach(() => {
+    if (originalSecret === undefined) delete process.env["SESSION_SECRET"];
+    else process.env["SESSION_SECRET"] = originalSecret;
+  });
+
+  it("rejects missing or weak session secrets", () => {
+    delete process.env["SESSION_SECRET"];
+    expect(() => getSessionSecret()).toThrow("SESSION_SECRET");
+    process.env["SESSION_SECRET"] = "short";
+    expect(() => getSessionSecret()).toThrow("at least 32");
+  });
+
+  it("signs and verifies a valid session", async () => {
+    process.env["SESSION_SECRET"] = "storyhouse-test-secret-that-is-at-least-32-bytes";
+    const payload = {
+      email: "reader@example.com",
+      role: "reader" as const,
+      exp: Math.floor(Date.now() / 1000) + 60,
+    };
+    const token = await signSessionPayload(payload);
+    await expect(verifySessionToken(token)).resolves.toMatchObject(payload);
+  });
+
+  it("rejects modified and expired sessions", async () => {
+    process.env["SESSION_SECRET"] = "storyhouse-test-secret-that-is-at-least-32-bytes";
+    const valid = await signSessionPayload({
+      email: "reader@example.com",
+      role: "reader",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    const last = valid.slice(-1);
+    await expect(verifySessionToken(valid.slice(0, -1) + (last === "a" ? "b" : "a"))).resolves.toBeNull();
+
+    const expired = await signSessionPayload({
+      email: "reader@example.com",
+      role: "reader",
+      exp: Math.floor(Date.now() / 1000) - 1,
+    });
+    await expect(verifySessionToken(expired)).resolves.toBeNull();
   });
 });

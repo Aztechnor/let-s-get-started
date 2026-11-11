@@ -277,3 +277,11 @@ describe("Error Classes", () => {
     });
   });
 });
+
+
+describe("SMTP provider safety", () => {
+  it("does not report placeholder SMTP as delivered", async () => {
+    setEnv({ NODE_ENV: "development", EMAIL_PROVIDER: "smtp", SMTP_HOST: "mail.example.com" });
+    await expect(sendLoginCode("reader@example.com", "123456")).rejects.toThrow(EmailNotConfiguredError);
+  });
+});
