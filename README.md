@@ -17,8 +17,8 @@ Storyhouse is a secure, invite-only platform for sharing and reading collections
 
 ### Prerequisites
 
-- Node.js 18+ (recommended: use [nvm](https://github.com/nvm-sh/nvm))
-- npm or bun
+- Node.js 22+ (recommended: use [nvm](https://github.com/nvm-sh/nvm)) or Bun
+- Bun is used for the committed lockfile and CI
 - Supabase project (for production)
 
 ### Installation
@@ -29,10 +29,10 @@ git clone https://github.com/Aztechnor/let-s-get-started.git
 cd let-s-get-started
 
 # Install dependencies
-npm install
+bun install
 
 # Start the development server
-npm run dev
+bun run dev
 ```
 
 The app will be available at `http://localhost:3000` (or the port specified by Vite).
@@ -41,26 +41,31 @@ The app will be available at `http://localhost:3000` (or the port specified by V
 
 ### Environment Variables
 
-Create a `.env` file in the project root with the following variables:
+Copy `.env.example` to `.env` and fill in the values locally. **Never commit `.env` or production credentials.**
 
 ```env
-# Required for all environments
-ADMIN_EMAIL=your-email@example.com
-ADMIN_PASSWORD=your-secure-password
-SESSION_SECRET=your-32-character-secret-key
-
-# Supabase configuration (for production)
+# Supabase
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
-# Optional: Email configuration (for production)
-# See Email Setup section below
-EMAIL_PROVIDER=supabase  # or 'resend', 'postmark', etc.
-EMAIL_FROM=storyhouse@your-domain.com
+# Application administration and sessions
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=use-a-long-unique-password
+SESSION_SECRET=generate-at-least-32-random-bytes
+
+# Transactional email: choose resend or postmark
+EMAIL_PROVIDER=resend
+EMAIL_FROM=reader@your-verified-domain.com
+RESEND_API_KEY=your-resend-api-key
+# For Postmark instead, use EMAIL_PROVIDER=postmark and POSTMARK_API_KEY.
 ```
 
-**Important**: The `SESSION_SECRET` must be at least 32 characters long and should be cryptographically random.
+Generate a session secret with `openssl rand -hex 32`. The application fails closed if `SESSION_SECRET` is missing or shorter than 32 bytes.
+
+The production email integration supports Resend and Postmark. SMTP, the old Lovable placeholder, and the old Supabase RPC example are not treated as working providers. A provider must accept the message before the application reports successful delivery.
 
 ### Development Mode
 
@@ -173,7 +178,7 @@ For local development, you can use the Supabase local development tools:
 
 ```bash
 # Install Supabase CLI
-npm install -g supabase
+bun install -g supabase
 
 # Start local Supabase
 supabase start
@@ -235,14 +240,14 @@ CREATE INDEX idx_audit_log_actor ON audit_log(actor_email);
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run build:dev` | Build with development mode |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
+| `bun run dev` | Start development server |
+| `bun run build` | Build for production |
+| `bun run build:dev` | Build with development mode |
+| `bun run preview` | Preview production build |
+| `bun run lint` | Run ESLint |
 | `npm run format` | Format code with Prettier |
-| `npm run test` | Run all tests |
-| `npm run test:watch` | Run tests in watch mode |
+| `bun run test` | Run all tests |
+| `bun run test:watch` | Run tests in watch mode |
 
 ## Testing
 
@@ -250,13 +255,13 @@ The project uses [Vitest](https://vitest.dev/) for testing.
 
 ```bash
 # Run all tests
-npm run test
+bun run test
 
 # Run tests in watch mode
-npm run test:watch
+bun run test:watch
 
 # Run specific test file
-npm run test src/test/bulk-invitations.test.ts
+bun run test src/test/bulk-invitations.test.ts
 ```
 
 ## Deployment
@@ -271,7 +276,7 @@ npm run test src/test/bulk-invitations.test.ts
 
 1. Build the project:
    ```bash
-   npm run build
+   bun run build
    ```
 
 2. The output will be in the `dist/` directory
@@ -286,9 +291,9 @@ Create a Dockerfile:
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN bun install
 COPY . .
-RUN npm run build
+RUN bun run build
 EXPOSE 3000
 CMD ["npm", "run", "preview"]
 ```
@@ -346,7 +351,7 @@ When inviting readers in bulk, each email receives one of these statuses:
 
 1. **Use HTTPS**: Always deploy with HTTPS enabled
 2. **Strong secrets**: Use cryptographically random secrets for `SESSION_SECRET`
-3. **Rotate credentials**: Rotate `ADMIN_PASSWORD` and Supabase keys regularly
+3. **Rotate credentials**: Rotate `ADMIN_PASSWORD`, `SESSION_SECRET`, and Supabase keys using a coordinated deployment
 4. **Audit logs**: Review the audit log in the admin dashboard regularly
 
 ## Troubleshooting
@@ -365,9 +370,9 @@ When inviting readers in bulk, each email receives one of these statuses:
 
 ### Build errors
 
-1. Run `npm install` to ensure all dependencies are installed
+1. Run `bun install` to ensure all dependencies are installed
 2. Check Node.js version (requires 18+)
-3. Clear node_modules and reinstall: `rm -rf node_modules package-lock.json && npm install`
+3. Clear node_modules and reinstall: `rm -rf node_modules package-lock.json && bun install`
 
 ## Technology Stack
 
@@ -383,7 +388,7 @@ When inviting readers in bulk, each email receives one of these statuses:
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/your-feature`)
 3. Make your changes
-4. Run tests and lint: `npm run test && npm run lint`
+4. Run tests and lint: `bun run test && bun run lint`
 5. Commit your changes (`git commit -m 'Add some feature'`)
 6. Push to the branch (`git push origin feature/your-feature`)
 7. Open a Pull Request
@@ -401,3 +406,14 @@ Private project - all rights reserved.
 ---
 
 For questions or support, please contact the project maintainer.
+
+
+## Production Hardening Notes
+
+Before deploying this branch, apply `drizzle/migrations/0002_auth_and_reader_hardening.sql` to Supabase. It creates an atomic database-backed rate limiter for code requests, code verification and administrator login, and adds cascading reader foreign keys for login codes and reading progress.
+
+Rate-limit keys are HMACs of account identifiers, so the database does not store raw email addresses as rate-limit keys. These are per-account limits; configure a trusted edge/IP rate limiter at the hosting layer for broader abuse protection.
+
+The PDF route checks current whitelist status on every request. Removing or deactivating a reader therefore blocks PDF access immediately, even if the browser still holds an unexpired session cookie.
+
+The CI workflow runs tests, lint and a production build using the repository's Bun lockfile.

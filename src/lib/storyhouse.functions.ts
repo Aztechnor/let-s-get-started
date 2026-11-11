@@ -1,10 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { isAuthorizedReaderSession } from "./reader-access.server";
 import { parseBulkInviteEmails, type BulkInviteResult } from "./bulk-invitations";
 import {
   clearSession,
   createSession,
   getSession,
   safeEqual,
+  getSessionSecret,
   type SessionPayload,
 } from "./session.server";
 import {
@@ -28,7 +31,7 @@ const RESEND_COOLDOWN_SECONDS = 45;
 const MAX_ATTEMPTS = 5;
 
 async function codeHash(email: string, code: string): Promise<string> {
-  const secret = process.env["SESSION_SECRET"] ?? "development-only-secret";
+  const secret = getSessionSecret();
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -46,22 +49,44 @@ async function codeHash(email: string, code: string): Promise<string> {
     .join("");
 }
 
+function generateLoginCode(): string {
+  // Rejection sampling avoids modulo bias while producing exactly six digits.
+  const range = 0x1_0000_0000;
+  const limit = Math.floor(range / 1_000_000) * 1_000_000;
+  const sample = new Uint32Array(1);
+  let value = 0;
+  do {
+    crypto.getRandomValues(sample);
+    value = sample[0] ?? 0;
+  } while (value >= limit);
+  return String(value % 1_000_000).padStart(6, "0");
+}
+
+async function consumeAuthRateLimit(
+  db: Awaited<ReturnType<typeof getAdminDb>>,
+  key: string,
+  limit: number,
+  windowSeconds: number,
+  message: string,
+): Promise<void> {
+  const keyHash = await codeHash("rate-limit", key);
+  const { data, error } = await db.rpc("consume_auth_rate_limit", {
+    p_key_hash: keyHash,
+    p_limit: limit,
+    p_window_seconds: windowSeconds,
+  });
+  if (error) {
+    console.error("Authentication rate-limit check failed", error);
+    throw new Error("Sign-in is temporarily unavailable. Please try again.");
+  }
+  if (!data) throw new Error(message);
+}
+
 /** Verifies the session cookie and that the reader is still whitelisted+active. */
 async function requireReader(): Promise<SessionPayload> {
   const session = await getSession();
   if (!session) throw new Error("A whitelisted reader sign-in is required.");
-  if (session.role === "admin") return session;
-  if (session.role !== "reader") {
-    await clearSession();
-    throw new Error("A whitelisted reader sign-in is required.");
-  }
-  const db = await getAdminDb();
-  const { data } = await db
-    .from("allowed_readers")
-    .select("active")
-    .eq("email", session.email)
-    .maybeSingle();
-  if (!data?.active) {
+  if (!(await isAuthorizedReaderSession(session))) {
     await clearSession();
     throw new Error("A whitelisted reader sign-in is required.");
   }
@@ -121,12 +146,13 @@ export const searchTheLibrary = createServerFn({ method: "GET" })
   });
 
 export const requestCode = createServerFn({ method: "POST" })
-  .inputValidator((input: { email: string }) => input)
+  .inputValidator((input: unknown) => z.object({ email: z.string().trim().email().max(254) }).parse(input))
   .handler(async ({ data }) => {
     const email = emailNormalize(data.email);
     if (!validEmail(email)) throw new Error("Enter a valid email address.");
 
     const db = await getAdminDb();
+    await consumeAuthRateLimit(db, `otp-request:${email}`, 5, 60 * 60, "Too many sign-in codes requested. Please try again later.");
     const { data: allowed } = await db
       .from("allowed_readers")
       .select("active")
@@ -148,7 +174,7 @@ export const requestCode = createServerFn({ method: "POST" })
       }
     }
 
-    const code = String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0");
+    const code = generateLoginCode();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + CODE_TTL_MINUTES * 60_000).toISOString();
     const { error: upsertError } = await db.from("login_codes").upsert(
@@ -184,14 +210,17 @@ export const requestCode = createServerFn({ method: "POST" })
   });
 
 export const verifyCode = createServerFn({ method: "POST" })
-  .inputValidator((input: { email: string; code: string }) => input)
+  .inputValidator((input: unknown) =>
+    z.object({ email: z.string().trim().email().max(254), code: z.string().regex(/^[0-9]{6}$/) }).parse(input),
+  )
   .handler(async ({ data }) => {
     const email = emailNormalize(data.email);
-    const code = (data.code ?? "").trim();
+    const code = data.code.trim();
     if (!validEmail(email) || !(code.length === 6 && /^\d{6}$/.test(code))) {
       throw new Error("Enter the email address and six-digit code.");
     }
     const db = await getAdminDb();
+    await consumeAuthRateLimit(db, `otp-verify:${email}`, 10, 15 * 60, "Too many sign-in attempts. Please try again in 15 minutes.");
     const { data: allowed } = await db
       .from("allowed_readers")
       .select("active")
@@ -205,13 +234,31 @@ export const verifyCode = createServerFn({ method: "POST" })
       await db.from("login_codes").delete().eq("email", email);
       throw new Error("Too many attempts. Request a new sign-in code.");
     }
-    const expired = new Date(saved.expires_at).getTime() < Date.now();
+    const expired = new Date(saved.expires_at).getTime() <= Date.now();
     const matches = safeEqual(await codeHash(email, code), saved.code_hash);
     if (expired || !matches) {
-      await db.from("login_codes").update({ attempts: saved.attempts + 1 }).eq("email", email);
+      // Match the update to the exact challenge so stale requests cannot mutate a newer code.
+      await db
+        .from("login_codes")
+        .update({ attempts: saved.attempts + 1 })
+        .eq("email", email)
+        .eq("code_hash", saved.code_hash)
+        .lt("attempts", MAX_ATTEMPTS);
       throw new Error("That sign-in code is invalid or has expired.");
     }
-    await db.from("login_codes").delete().eq("email", email);
+
+    // Conditional deletion makes the one-time challenge single-use, even under concurrency.
+    const { data: consumed, error: consumeError } = await db
+      .from("login_codes")
+      .delete()
+      .eq("email", email)
+      .eq("code_hash", saved.code_hash)
+      .gt("expires_at", new Date().toISOString())
+      .lt("attempts", MAX_ATTEMPTS)
+      .select("email");
+    if (consumeError || !consumed?.length) {
+      throw new Error("That sign-in code is invalid or has expired.");
+    }
     await db.from("allowed_readers").update({ last_login_at: new Date().toISOString() }).eq("email", email);
     await logAction(email, "reader_signed_in", email);
     await createSession({ email, role: "reader" });
@@ -219,13 +266,17 @@ export const verifyCode = createServerFn({ method: "POST" })
   });
 
 export const adminLogin = createServerFn({ method: "POST" })
-  .inputValidator((input: { email: string; password: string }) => input)
+  .inputValidator((input: unknown) =>
+    z.object({ email: z.string().trim().email().max(254), password: z.string().min(1).max(1024) }).parse(input),
+  )
   .handler(async ({ data }) => {
     const adminEmail = emailNormalize(process.env["ADMIN_EMAIL"] ?? "");
     const adminPassword = process.env["ADMIN_PASSWORD"] ?? "";
     if (!adminEmail || !adminPassword) {
       throw new Error("Admin access is not configured yet. The administrator credentials still need to be saved.");
     }
+    const db = await getAdminDb();
+    await consumeAuthRateLimit(db, `admin-login:${adminEmail}`, 5, 15 * 60, "Too many administrator sign-in attempts. Try again in 15 minutes.");
     const emailOk = safeEqual(emailNormalize(data.email), adminEmail);
     const passwordOk = safeEqual(data.password ?? "", adminPassword);
     if (!emailOk || !passwordOk) {
