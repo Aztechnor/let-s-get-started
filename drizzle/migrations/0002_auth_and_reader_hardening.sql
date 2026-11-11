@@ -18,7 +18,7 @@ CREATE OR REPLACE FUNCTION public.consume_auth_rate_limit(
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = ''
 AS $$
 DECLARE
