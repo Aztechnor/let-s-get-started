@@ -152,8 +152,10 @@ describe("session signing hardening", () => {
       role: "reader",
       exp: Math.floor(Date.now() / 1000) + 60,
     });
-    const last = valid.slice(-1);
-    await expect(verifySessionToken(valid.slice(0, -1) + (last === "a" ? "b" : "a"))).resolves.toBeNull();
+    const [body, signature] = valid.split(".");
+    const firstSignatureChar = signature?.[0] ?? "a";
+    const tamperedSignature = (firstSignatureChar === "a" ? "b" : "a") + (signature?.slice(1) ?? "");
+    await expect(verifySessionToken(`${body}.${tamperedSignature}`)).resolves.toBeNull();
 
     const expired = await signSessionPayload({
       email: "reader@example.com",
