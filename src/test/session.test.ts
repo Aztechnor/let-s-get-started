@@ -156,9 +156,10 @@ describe("signed session tokens", () => {
       role: "reader",
       exp: Math.floor(Date.now() / 1000) + 60,
     });
-    const last = token.slice(-1);
-    const tampered = token.slice(0, -1) + (last === "a" ? "b" : "a");
-    await expect(verifySessionToken(tampered)).resolves.toBeNull();
+    const [body, signature] = token.split(".");
+    const firstSignatureChar = signature?.[0] ?? "a";
+    const tamperedSignature = (firstSignatureChar === "a" ? "b" : "a") + (signature?.slice(1) ?? "");
+    await expect(verifySessionToken(`${body}.${tamperedSignature}`)).resolves.toBeNull();
   });
 
   it("rejects expired sessions", async () => {
