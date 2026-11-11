@@ -22,12 +22,8 @@ import {
   Check,
   ChevronDown,
   Clock3,
-  Moon,
-  Palette,
   Search,
   Settings2,
-  Sun,
-  Type,
   X,
 } from "lucide-react";
 import {
@@ -177,6 +173,7 @@ function ReadPage() {
   };
 
   const openBookmark = (bookmark: ReaderBookmark) => {
+    if (bookId === bookmark.bookId && chapterIndex === bookmark.chapterIndex) return;
     setBookId(bookmark.bookId);
     setChapterIndex(bookmark.chapterIndex);
     setStory(null);
