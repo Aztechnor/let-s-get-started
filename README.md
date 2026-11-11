@@ -178,7 +178,7 @@ For local development, you can use the Supabase local development tools:
 
 ```bash
 # Install Supabase CLI
-bun install -g supabase
+bun add --global supabase
 
 # Start local Supabase
 supabase start
@@ -245,7 +245,7 @@ CREATE INDEX idx_audit_log_actor ON audit_log(actor_email);
 | `bun run build:dev` | Build with development mode |
 | `bun run preview` | Preview production build |
 | `bun run lint` | Run ESLint |
-| `npm run format` | Format code with Prettier |
+| `bun run format` | Format code with Prettier |
 | `bun run test` | Run all tests |
 | `bun run test:watch` | Run tests in watch mode |
 
@@ -371,8 +371,8 @@ When inviting readers in bulk, each email receives one of these statuses:
 ### Build errors
 
 1. Run `bun install` to ensure all dependencies are installed
-2. Check Node.js version (requires 18+)
-3. Clear node_modules and reinstall: `rm -rf node_modules package-lock.json && bun install`
+2. Check Node.js version (requires 22+ if not using Bun)
+3. Clear node_modules and reinstall: `rm -rf node_modules && bun install`
 
 ## Technology Stack
 

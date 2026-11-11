@@ -159,10 +159,6 @@ export const requestCode = createServerFn({ method: "POST" })
     // Keep the response generic so an unapproved email cannot be enumerated.
     const genericMessage = "If this email has reader access, a sign-in code will be issued.";
     if (!allowed?.active) return { message: genericMessage };
-    // Do not create rate-limit rows for arbitrary, non-whitelisted email addresses.
-    const withinRequestLimit = await consumeAuthRateLimit(db, `otp-request:${email}`, 5, 60 * 60);
-    if (!withinRequestLimit) return { message: genericMessage };
-
     const { data: existing } = await db
       .from("login_codes")
       .select("sent_at")
@@ -174,6 +170,10 @@ export const requestCode = createServerFn({ method: "POST" })
         throw new Error("A code was recently requested. Check your inbox or wait a moment before retrying.");
       }
     }
+
+    // Do not create rate-limit rows for arbitrary, non-whitelisted email addresses.
+    const withinRequestLimit = await consumeAuthRateLimit(db, `otp-request:${email}`, 5, 60 * 60);
+    if (!withinRequestLimit) return { message: genericMessage };
 
     const code = generateLoginCode();
     const now = new Date();
@@ -231,7 +231,7 @@ export const verifyCode = createServerFn({ method: "POST" })
       throw new Error("That sign-in code is invalid or has expired.");
     }
     // Only active, invited accounts create persistent rate-limit buckets.
-    const withinVerifyLimit = await consumeAuthRateLimit(db, `otp-verify:${email}`, 10, 15 * 60);
+    const withinVerifyLimit = await consumeAuthRateLimit(db, `otp-verify:${email}`, 5, 15 * 60);
     if (!withinVerifyLimit) {
       throw new Error("That sign-in code is invalid or has expired.");
     }
