@@ -1,15 +1,11 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import alexandriaLogo from "@/assets/library-of-alexandria-logo.png.asset.json";
 
 function Brand({ small }: { small?: boolean }) {
   return (
-    <Link to="/" className={"brand" + (small ? " brand-small" : "")} aria-label="Storyhouse home">
-      <span className="brand-mark">
-        s<span>✳</span>
-      </span>
-      <span className="brand-name">
-        storyhouse<small>THE DIGITAL READING ROOM</small>
-      </span>
+    <Link to="/" className={"brand" + (small ? " brand-small" : "")} aria-label="Library of Alexandria — Storyhouse home">
+      <img className="brand-logo" src={alexandriaLogo.url} alt="Library of Alexandria — Where stories come alive" />
     </Link>
   );
 }
