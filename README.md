@@ -107,68 +107,35 @@ let-s-get-started/
 
 ## Email Setup
 
-Storyhouse uses email to deliver one-time sign-in codes to readers. You have several options:
+Storyhouse sends one-time sign-in codes through a transactional email provider. Production currently supports **Resend** and **Postmark**; the application does not treat placeholder SMTP, Lovable, or Supabase RPC integrations as working providers.
 
-### Option 1: Lovable Email (Recommended for Lovable-hosted projects)
+### Option 1: Resend
 
-Lovable provides managed transactional email. To enable:
-
-1. Configure your sending domain in Lovable settings
-2. The email templates will be automatically scaffolded
-3. No code changes needed - the integration is automatic
-
-### Option 2: Supabase Email (Self-hosted)
-
-If using Supabase, you can use their email service:
+1. Verify the sending domain in Resend and publish the DNS records it provides.
+2. Create an API key for the project.
+3. Configure these server-side environment variables in your deployment:
 
 ```env
-EMAIL_PROVIDER=supabase
+EMAIL_PROVIDER=resend
+EMAIL_FROM=reader@your-verified-domain.com
+RESEND_API_KEY=your-resend-api-key
 ```
 
-Then update `src/lib/email.server.ts`:
+### Option 2: Postmark
 
-```typescript
-import { createClient } from '@supabase/supabase-js'
+1. Verify the sender signature or sending domain in Postmark.
+2. Create a Server API Token.
+3. Configure:
 
-export async function sendLoginCode(recipient: string, code: string): Promise<void> {
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!
-  )
-  
-  await supabase.rpc('send_login_code', {
-    to_email: recipient,
-    code
-  })
-}
+```env
+EMAIL_PROVIDER=postmark
+EMAIL_FROM=reader@your-verified-domain.com
+POSTMARK_API_KEY=your-postmark-server-token
 ```
 
-### Option 3: Custom Email Provider
+The sender address must be verified with the selected provider. Keep provider API keys in the hosting platform's server-side secret manager; do not prefix them with `VITE_` or expose them to browser code.
 
-You can integrate with any email service (Resend, Postmark, SendGrid, etc.):
-
-```typescript
-// Example with Resend
-export async function sendLoginCode(recipient: string, code: string): Promise<void> {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: process.env.EMAIL_FROM,
-      to: recipient,
-      subject: 'Your Storyhouse sign-in code',
-      html: `<p>Your sign-in code is: <strong>${code}</strong></p>`
-    })
-  })
-  
-  if (!response.ok) {
-    throw new Error('Failed to send email')
-  }
-}
-```
+For local development, leave `EMAIL_PROVIDER` unset or set it to `none`. The sign-in code is returned in the development UI. In production, missing or unsupported email configuration fails closed and does not report a message as delivered.
 
 ## Database Setup
 
