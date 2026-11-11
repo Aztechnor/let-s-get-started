@@ -61,7 +61,12 @@ export async function verifySessionToken(token: string | undefined | null): Prom
     const [body, encodedSignature] = parts;
     if (!body || !encodedSignature) return null;
     const signature = base64UrlToBytes(encodedSignature);
-    const valid = await crypto.subtle.verify("HMAC", key, signature, encoder.encode(body));
+    const signatureBuffer = new Uint8Array(signature.byteLength);
+    signatureBuffer.set(signature);
+    const bodyBytes = encoder.encode(body);
+    const bodyBuffer = new Uint8Array(bodyBytes.byteLength);
+    bodyBuffer.set(bodyBytes);
+    const valid = await crypto.subtle.verify("HMAC", key, signatureBuffer.buffer, bodyBuffer.buffer);
     if (!valid) return null;
 
     const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(body))) as Partial<SessionPayload>;

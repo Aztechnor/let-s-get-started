@@ -28,7 +28,7 @@ jobs:
         run: bun run test
       - name: ESLint (excluding the repository-wide Prettier baseline)
         run: "bunx eslint . --rule 'prettier/prettier: off'"
-      - name: TypeScript type check
-        run: bunx tsc --noEmit
+      - name: TypeScript application type check
+        run: bunx tsc --noEmit -p tsconfig.ci.json
       - name: Production build
         run: bun run build

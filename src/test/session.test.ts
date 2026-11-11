@@ -119,22 +119,22 @@ describe("session utility functions", () => {
 
 
 describe("signed session tokens", () => {
-  const originalSecret = process.env.SESSION_SECRET;
+  const originalSecret = process.env["SESSION_SECRET"];
 
   afterEach(() => {
-    if (originalSecret === undefined) delete process.env.SESSION_SECRET;
-    else process.env.SESSION_SECRET = originalSecret;
+    if (originalSecret === undefined) delete process.env["SESSION_SECRET"];
+    else process.env["SESSION_SECRET"] = originalSecret;
   });
 
   it("requires a configured secret of at least 32 bytes", async () => {
-    delete process.env.SESSION_SECRET;
+    delete process.env["SESSION_SECRET"];
     await expect(signSessionPayload({
       email: "reader@example.com",
       role: "reader",
       exp: Math.floor(Date.now() / 1000) + 60,
     })).rejects.toThrow("SESSION_SECRET");
 
-    process.env.SESSION_SECRET = "too-short";
+    process.env["SESSION_SECRET"] = "too-short";
     await expect(signSessionPayload({
       email: "reader@example.com",
       role: "reader",
@@ -143,14 +143,14 @@ describe("signed session tokens", () => {
   });
 
   it("signs and verifies a valid reader session", async () => {
-    process.env.SESSION_SECRET = "test-session-secret-that-is-at-least-32-bytes";
+    process.env["SESSION_SECRET"] = "test-session-secret-that-is-at-least-32-bytes";
     const payload = { email: "reader@example.com", role: "reader" as const, exp: Math.floor(Date.now() / 1000) + 60 };
     const token = await signSessionPayload(payload);
     await expect(verifySessionToken(token)).resolves.toMatchObject(payload);
   });
 
   it("rejects a modified session token", async () => {
-    process.env.SESSION_SECRET = "test-session-secret-that-is-at-least-32-bytes";
+    process.env["SESSION_SECRET"] = "test-session-secret-that-is-at-least-32-bytes";
     const token = await signSessionPayload({
       email: "reader@example.com",
       role: "reader",
@@ -162,7 +162,7 @@ describe("signed session tokens", () => {
   });
 
   it("rejects expired sessions", async () => {
-    process.env.SESSION_SECRET = "test-session-secret-that-is-at-least-32-bytes";
+    process.env["SESSION_SECRET"] = "test-session-secret-that-is-at-least-32-bytes";
     const token = await signSessionPayload({
       email: "reader@example.com",
       role: "reader",

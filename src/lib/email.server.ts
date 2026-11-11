@@ -11,7 +11,7 @@ export class EmailNotConfiguredError extends Error {
 
 export class EmailDeliveryError extends Error {
   code = "EMAIL_DELIVERY_FAILED";
-  originalError?: Error;
+  originalError: Error | undefined;
 
   constructor(message: string, originalError?: Error) {
     super(message);
@@ -22,7 +22,7 @@ export class EmailDeliveryError extends Error {
 export type EmailProvider = "resend" | "postmark" | "none";
 
 function getEmailProvider(): EmailProvider {
-  const provider = (process.env.EMAIL_PROVIDER ?? "").trim().toLowerCase() || "none";
+  const provider = (process.env["EMAIL_PROVIDER"] ?? "").trim().toLowerCase() || "none";
   if (provider === "resend" || provider === "postmark" || provider === "none") return provider;
   throw new EmailNotConfiguredError(
     `Unsupported EMAIL_PROVIDER "${provider}". Configure "resend" or "postmark".`,
@@ -30,7 +30,7 @@ function getEmailProvider(): EmailProvider {
 }
 
 function getFromEmail(): string {
-  const email = (process.env.EMAIL_FROM ?? "").trim();
+  const email = (process.env["EMAIL_FROM"] ?? "").trim();
   const parts = email.split("@");
   if (
     email.length > 254 ||
@@ -87,7 +87,7 @@ export async function sendLoginCode(
 }
 
 async function sendWithResend(recipient: string, code: string): Promise<{ delivered: true }> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey) throw new EmailNotConfiguredError("RESEND_API_KEY is required for the Resend provider.");
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -110,7 +110,7 @@ async function sendWithResend(recipient: string, code: string): Promise<{ delive
 }
 
 async function sendWithPostmark(recipient: string, code: string): Promise<{ delivered: true }> {
-  const apiKey = process.env.POSTMARK_API_KEY;
+  const apiKey = process.env["POSTMARK_API_KEY"];
   if (!apiKey) throw new EmailNotConfiguredError("POSTMARK_API_KEY is required for the Postmark provider.");
 
   const response = await fetch("https://api.postmarkapp.com/email", {
