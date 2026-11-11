@@ -364,7 +364,7 @@ function ReaderCard({
   onRefresh,
 }: {
   reader: ReaderRow;
-  progress?: ReaderProgressInfo;
+  progress?: ReaderProgressInfo | undefined;
   onRefresh: () => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
