@@ -2,7 +2,7 @@
 
 # North star
 
-Invited readers get to read and enjoy the author's stories
+Readers get a preview of Wakabi’s works
 
 ## Metric
 
