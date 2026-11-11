@@ -161,7 +161,7 @@ describe("email.server.ts", () => {
         expect(result.devCode).toBe("123456");
       });
 
-      it("throws EmailNotConfiguredError when EMAIL_PROVIDER is not set in production", async () => {
+      it("uses the development code fallback when EMAIL_PROVIDER is empty", async () => {
         setEnv({
           NODE_ENV: "production",
           EMAIL_PROVIDER: "",

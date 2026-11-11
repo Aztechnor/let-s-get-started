@@ -22,7 +22,7 @@ export class EmailDeliveryError extends Error {
 export type EmailProvider = "resend" | "postmark" | "none";
 
 function getEmailProvider(): EmailProvider {
-  const provider = (process.env.EMAIL_PROVIDER ?? "none").trim().toLowerCase();
+  const provider = (process.env.EMAIL_PROVIDER ?? "").trim().toLowerCase() || "none";
   if (provider === "resend" || provider === "postmark" || provider === "none") return provider;
   throw new EmailNotConfiguredError(
     `Unsupported EMAIL_PROVIDER "${provider}". Configure "resend" or "postmark".`,
