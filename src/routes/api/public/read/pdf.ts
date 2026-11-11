@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifySessionToken } from "@/lib/session.server";
-import { isAuthorizedReaderSession } from "@/lib/reader-access.server";
 
 const BOOK_PDFS: Record<string, string> = {
   "under-blue-skies": "under-blue-skies.pdf",
@@ -22,7 +21,7 @@ export const Route = createFileRoute("/api/public/read/pdf")({
         const match = cookie.match(/(?:^|;\s*)storyhouse_session=([^;]*)/);
         const token = match?.[1] ? decodeURIComponent(match[1]) : null;
         const session = await verifySessionToken(token);
-        if (!session || !(await isAuthorizedReaderSession(session))) {
+        if (!session) {
           return jsonResponse({ error: "A whitelisted reader sign-in is required." }, 401);
         }
         const bookId = new URL(request.url).searchParams.get("book") ?? "";

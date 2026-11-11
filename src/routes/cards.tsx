@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-chrome";
-import { toast, toastSuccess, toastError, ToastHost } from "@/components/toast";
-import { Spinner, ButtonSpinner, Badge } from "@/components/ui/loading";
-import { cn } from "@/lib/utils";
+import { toast, ToastHost } from "@/components/toast";
 
 export const Route = createFileRoute("/cards")({
   head: () => ({
@@ -24,9 +22,9 @@ type TemplateId = "bluehour" | "wildflower" | "archive" | "redacted" | "moonlit"
 const QUOTES: { quote: string; source: string; book: "under" | "spook"; template: TemplateId }[] = [
   { quote: "To have loved and lost is better than to have never loved at all.", source: "UNDER BLUE SKIES · EPIGRAPH", book: "under", template: "wildflower" },
   { quote: "It's easy to love the idea of someone, but much harder to love the reality.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "bluehour" },
-  { quote: "Some wounds don't heal. Some scars don't fade.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "moonlit" },
+  { quote: "Some wounds don’t heal. Some scars don’t fade.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "moonlit" },
   { quote: "For every dawn follows darkest day.", source: "UNDER BLUE SKIES · THE OPENING POEM", book: "under", template: "postcard" },
-  { quote: "Promise me this, that you'll never be afraid to be human.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "wildflower" },
+  { quote: "Promise me this, that you’ll never be afraid to be human.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "wildflower" },
   { quote: "Land that sits too quietly.", source: "SPOOK · THE LAND", book: "spook", template: "archive" },
   { quote: "The Great North Road does not forget. It swallows.", source: "SPOOK · THE HITCHHIKER", book: "spook", template: "redacted" },
   { quote: "The land remembers. It sends its teeth.", source: "SPOOK · NANDI BEAR", book: "spook", template: "moonlit" },
@@ -34,16 +32,16 @@ const QUOTES: { quote: string; source: string; book: "under" | "spook"; template
   { quote: "Every story, a different document.", source: "SPOOK · COVER LINE", book: "spook", template: "redacted" },
 ];
 
-const TEMPLATES: { id: TemplateId; name: string; desc: string; icon: string }[] = [
-  { id: "bluehour", name: "Blue Hour", desc: "Soft, open, and hopeful.", icon: "🌊" },
-  { id: "wildflower", name: "Wildflower", desc: "Warm paper, handwritten feeling.", icon: "🌼" },
-  { id: "archive", name: "Archive File", desc: "Dark, precise, and recovered.", icon: "📁" },
-  { id: "redacted", name: "Redacted", desc: "A rough-edged case file.", icon: "🔒" },
-  { id: "moonlit", name: "Moonlit", desc: "Night sky and quiet mystery.", icon: "🌙" },
-  { id: "postcard", name: "Postcard", desc: "A little note from somewhere.", icon: "📬" },
+const TEMPLATES: { id: TemplateId; name: string; desc: string }[] = [
+  { id: "bluehour", name: "Blue Hour", desc: "Soft, open, and hopeful." },
+  { id: "wildflower", name: "Wildflower", desc: "Warm paper, handwritten feeling." },
+  { id: "archive", name: "Archive File", desc: "Dark, precise, and recovered." },
+  { id: "redacted", name: "Redacted", desc: "A rough-edged case file." },
+  { id: "moonlit", name: "Moonlit", desc: "Night sky and quiet mystery." },
+  { id: "postcard", name: "Postcard", desc: "A little note from somewhere." },
 ];
 
-// Card artwork colors are part of each printed design (canvas pixels), not app theme tokens.
+// Card artwork colours are part of each printed design (canvas pixels), not app theme tokens.
 const PALETTES: Record<TemplateId, { bg1: string; bg2: string; ink: string; line: string; accent: string }> = {
   bluehour: { bg1: "#eef3ef", bg2: "#c4dce0", ink: "#2a4a5b", line: "#6b99a8", accent: "#b78768" },
   wildflower: { bg1: "#f7f0df", bg2: "#eadfc6", ink: "#355545", line: "#91a68f", accent: "#719879" },
@@ -199,7 +197,7 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
   ctx.fillText(doc ? "RECOVERED DOCUMENT / STORYHOUSE" : theme === "postcard" ? "GREETINGS FROM STORYHOUSE" : "A LINE TO KEEP", 112, 135);
   ctx.textAlign = "right";
   ctx.font = `600 16px ${sans}`;
-  ctx.fillText(`${String(o.number).padStart(2, "0")} / ✓`, 968, 135);
+  ctx.fillText(`${String(o.number).padStart(2, "0")} / ✳`, 968, 135);
 
   if (o.ornament) {
     ctx.fillStyle = p.accent;
@@ -207,7 +205,7 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
     else drawStar(ctx, 540, 310, 26, 11, 8);
   }
 
-  const quote = `"${o.quote || "Write the line you want to keep…"}"`;
+  const quote = `“${o.quote || "Write the line you want to keep…"}”`;
   const family = doc ? "monospace" : "Georgia, serif";
   const italic = theme === "wildflower" || theme === "postcard" ? "italic " : "";
   let fontSize = doc ? 55 : 67;
@@ -257,58 +255,14 @@ function safeFileName(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "storyhouse-quote";
 }
 
-// Template swatch with icon
-function TemplateSwatch({ id, icon }: { id: TemplateId; icon?: string }) {
+function TemplateSwatch({ id }: { id: TemplateId }) {
   const p = PALETTES[id];
   return (
-    <div className="relative h-10 w-10 shrink-0 rounded-md border overflow-hidden">
-      <div
-        className="absolute inset-0"
-        style={{ background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})` }}
-      />
-      {icon && (
-        <div className="relative z-10 flex h-full w-full items-center justify-center text-white drop-shadow-md">
-          {icon}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Template option button
-function TemplateOption({
-  id,
-  name,
-  desc,
-  icon,
-  selected,
-  onClick,
-}: {
-  id: TemplateId;
-  name: string;
-  desc: string;
-  icon?: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      role="radio"
-      aria-checked={selected}
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 rounded-lg border p-3 text-left transition-all",
-        selected
-          ? "border-primary ring-2 ring-primary"
-          : "hover:bg-accent hover:border-accent"
-      )}
-    >
-      <TemplateSwatch id={id} icon={icon} />
-      <span className="flex-1">
-        <b className="text-sm block">{name}</b>
-        <small className="text-xs text-muted-foreground">{desc}</small>
-      </span>
-    </button>
+    <span
+      aria-hidden
+      className="block h-10 w-10 shrink-0 rounded-md border"
+      style={{ background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`, boxShadow: `inset 0 0 0 3px ${p.accent}55` }}
+    />
   );
 }
 
@@ -320,8 +274,6 @@ function CardsPage() {
   const [signature, setSignature] = useState("");
   const [ornament, setOrnament] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
 
   const options: CardOptions = {
     template,
@@ -332,127 +284,94 @@ function CardsPage() {
     number: selected + 1,
   };
 
-  // Update canvas when options change
   useEffect(() => {
     if (canvasRef.current) drawCard(canvasRef.current, options);
-  }, [options]);
+  });
 
-  const makeBlob = useCallback(async () => {
+  const makeBlob = async () => {
     if (document.fonts?.ready) await document.fonts.ready;
     const canvas = document.createElement("canvas");
     drawCard(canvas, options);
     return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-  }, [options]);
-
-  const download = useCallback(async () => {
-    setIsDownloading(true);
-    try {
-      const blob = await makeBlob();
-      if (!blob) {
-        toastError("The card image could not be created in this browser.");
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${safeFileName(attribution)}-${template}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      toastSuccess("Your 1080 × 1350 card is ready!");
-    } catch {
-      toastError("Failed to download card");
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [makeBlob, attribution, template]);
-
-  const share = useCallback(async () => {
-    setIsSharing(true);
-    try {
-      const blob = await makeBlob();
-      if (!blob) {
-        toastError("The card image could not be created.");
-        return;
-      }
-      const file = new File([blob], `${safeFileName(attribution)}.png`, { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: "A line to keep · Storyhouse",
-            text: options.quote,
-          });
-        } catch {
-          // Share sheet dismissed
-        }
-      } else {
-        await download();
-      }
-    } catch {
-      toastError("Failed to share card");
-    } finally {
-      setIsSharing(false);
-    }
-  }, [makeBlob, download, attribution, options]);
-
-  // Handle quote selection
-  const handleQuoteSelect = (index: number) => {
-    setSelected(index);
-    setCustom("");
-    setAttribution(QUOTES[index]?.source ?? "");
-    setTemplate(QUOTES[index]?.template ?? "bluehour");
   };
 
-  // Field input class
-  const fieldClass = "w-full rounded-lg border border-input bg-card px-4 py-2 text-sm outline-none transition-all focus:ring-2 focus:ring-ring";
+  const download = async () => {
+    const blob = await makeBlob();
+    if (!blob) return toast("The card image could not be created in this browser.");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safeFileName(attribution)}-${template}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast("Your 1080 × 1350 card is ready.");
+  };
+
+  const share = async () => {
+    const blob = await makeBlob();
+    if (!blob) return toast("The card image could not be created.");
+    const file = new File([blob], `${safeFileName(attribution)}.png`, { type: "image/png" });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "A line to keep · Storyhouse", text: options.quote });
+      } catch {
+        /* share sheet dismissed */
+      }
+    } else {
+      await download();
+    }
+  };
+
+  const field = "w-full rounded-lg border border-input bg-card px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <ToastHost />
       <SiteHeader active="cards" />
-      
       <main className="mx-auto grid w-full max-w-6xl gap-10 px-6 pb-24 pt-12 lg:grid-cols-[1fr_minmax(0,420px)]">
-        {/* Controls Section */}
         <section className="space-y-6">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-semibold">Quote studio</h1>
-              <Badge variant="secondary">Beta</Badge>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Pick a line, choose a design, and download a card worth keeping.
-            </p>
+            <h1 className="text-3xl font-semibold">Quote studio</h1>
+            <p className="mt-3 text-sm text-muted-foreground">Pick a line, choose a design, and download a card worth keeping.</p>
           </div>
 
-          {/* Design Selection */}
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Design
-            </p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Design</p>
             <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
               {TEMPLATES.map((t) => (
-                <TemplateOption
+                <button
                   key={t.id}
-                  id={t.id}
-                  name={t.name}
-                  desc={t.desc}
-                  icon={t.icon}
-                  selected={template === t.id}
+                  role="radio"
+                  aria-checked={template === t.id}
                   onClick={() => setTemplate(t.id)}
-                />
+                  className={
+                    "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors " +
+                    (template === t.id ? "border-primary ring-2 ring-primary" : "hover:bg-accent")
+                  }
+                >
+                  <TemplateSwatch id={t.id} />
+                  <span>
+                    <b className="text-sm">{t.name}</b>
+                    <br />
+                    <small className="text-muted-foreground">{t.desc}</small>
+                  </span>
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Quote Selection */}
           <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Choose a line
-            </span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Choose a line</span>
             <select
               value={selected}
-              onChange={(e) => handleQuoteSelect(Number(e.target.value))}
-              className={fieldClass}
+              onChange={(e) => {
+                const i = Number(e.target.value);
+                setSelected(i);
+                setCustom("");
+                setAttribution(QUOTES[i]?.source ?? "");
+                setTemplate(QUOTES[i]?.template ?? "bluehour");
+              }}
+              className={field}
             >
               {QUOTES.map((q, i) => (
                 <option key={i} value={i}>
@@ -462,92 +381,31 @@ function CardsPage() {
             </select>
           </label>
 
-          {/* Custom Quote */}
-          <textarea
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            rows={3}
-            placeholder="…or write your own quote"
-            className={fieldClass}
-          />
-
-          {/* Attribution */}
-          <input
-            value={attribution}
-            onChange={(e) => setAttribution(e.target.value)}
-            placeholder="Attribution (e.g., UNDER BLUE SKIES · I WILL NEVER HIT YOU)"
-            className={fieldClass}
-          />
-
-          {/* Signature */}
-          <input
-            value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            placeholder="Signature (optional)"
-            className={fieldClass}
-          />
-
-          {/* Ornament Toggle */}
+          <textarea value={custom} onChange={(e) => setCustom(e.target.value)} rows={3} placeholder="…or write your own quote" className={field} />
+          <input value={attribution} onChange={(e) => setAttribution(e.target.value)} placeholder="Attribution" className={field} />
+          <input value={signature} onChange={(e) => setSignature(e.target.value)} placeholder="Signature (optional)" className={field} />
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={ornament}
-              onChange={(e) => setOrnament(e.target.checked)}
-              className="h-4 w-4 rounded border-input"
-            />
-            <span>Show star ornament</span>
+            <input type="checkbox" checked={ornament} onChange={(e) => setOrnament(e.target.checked)} />
+            Show star ornament
           </label>
 
-          {/* Action Buttons */}
           <div className="flex gap-3">
-            <button
-              onClick={download}
-              disabled={isDownloading}
-              className="flex-1 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50 transition-all hover:bg-primary/90"
-            >
-              {isDownloading ? <ButtonSpinner /> : "Download PNG ↓"}
+            <button onClick={download} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground">
+              Download PNG ↓
             </button>
-            <button
-              onClick={share}
-              disabled={isSharing}
-              className="flex-1 rounded-lg border px-5 py-2 text-sm font-medium transition-all hover:bg-accent disabled:opacity-50"
-            >
-              {isSharing ? <ButtonSpinner /> : "Share"}
+            <button onClick={share} className="rounded-lg border px-5 py-2 text-sm">
+              Share
             </button>
-          </div>
-
-          {/* Tips */}
-          <div className="rounded-xl border bg-card p-4">
-            <p className="text-xs text-muted-foreground">
-              <strong>Tip:</strong> Cards are rendered at 1080×1350px (4:5 aspect ratio), perfect for social media sharing.
-            </p>
           </div>
         </section>
 
-        {/* Preview Section */}
         <section className="lg:sticky lg:top-8 lg:self-start">
-          <div className="space-y-3">
-            <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Preview
-            </p>
-            <canvas
-              ref={canvasRef}
-              className="aspect-[4/5] w-full rounded-xl border shadow-sm transition-all"
-              aria-label="Quote card preview"
-            />
-            <div className="flex items-center justify-center gap-2">
-              {TEMPLATES.find((t) => t.id === template)?.icon && (
-                <span>{TEMPLATES.find((t) => t.id === template)?.icon}</span>
-              )}
-              <span className="text-sm text-muted-foreground">
-                {TEMPLATES.find((t) => t.id === template)?.name} — {TEMPLATES.find((t) => t.id === template)?.desc}
-              </span>
-            </div>
-          </div>
+          <canvas ref={canvasRef} className="aspect-[4/5] w-full rounded-xl border shadow-sm" aria-label="Quote card preview" />
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            {TEMPLATES.find((t) => t.id === template)?.name} — {TEMPLATES.find((t) => t.id === template)?.desc}
+          </p>
         </section>
       </main>
     </div>
   );
 }
-
-export default CardsPage;
