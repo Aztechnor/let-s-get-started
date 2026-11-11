@@ -4,7 +4,7 @@
 CREATE TABLE public.auth_rate_limits (
   key_hash TEXT PRIMARY KEY,
   attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
-  window_started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  window_started_at TIMESTAMPTZ NOT NULL DEFAULT pg_catalog.now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -19,13 +19,13 @@ CREATE OR REPLACE FUNCTION public.consume_auth_rate_limit(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $$
 DECLARE
   v_attempt_count INTEGER;
   v_window_started_at TIMESTAMPTZ;
 BEGIN
-  IF p_key_hash IS NULL OR length(p_key_hash) <> 64 OR p_limit < 1 OR p_window_seconds < 1 THEN
+  IF p_key_hash IS NULL OR pg_catalog.length(p_key_hash) <> 64 OR p_limit < 1 OR p_window_seconds < 1 THEN
     RAISE EXCEPTION 'Invalid authentication rate-limit arguments';
   END IF;
 
@@ -39,7 +39,7 @@ BEGIN
     WHERE key_hash = p_key_hash
     FOR UPDATE;
 
-  IF v_window_started_at <= now() - make_interval(secs => p_window_seconds) THEN
+  IF v_window_started_at <= now() - pg_catalog.make_interval(secs => p_window_seconds) THEN
     UPDATE public.auth_rate_limits
        SET attempt_count = 1, window_started_at = now(), updated_at = now()
      WHERE key_hash = p_key_hash;
