@@ -165,7 +165,11 @@ export const requestCode = createServerFn({ method: "POST" })
     await logAction(email, "reader_code_requested", email);
 
     try {
-      await (await import("./email.server")).sendLoginCode(email, code);
+      const result = await (await import("./email.server")).sendLoginCode(email, code);
+      // In development mode, the email function returns the code to display in UI
+      if (result.devCode) {
+        return { message: `Email delivery is not set up yet. Development code: ${result.devCode}`, dev_code: result.devCode };
+      }
     } catch (error) {
       if ((error as { code?: string }).code === "EMAIL_NOT_CONFIGURED") {
         if (!import.meta.env.PROD) {
