@@ -12,7 +12,7 @@ export class EmailNotConfiguredError extends Error {
 
 export class EmailDeliveryError extends Error {
   code = "EMAIL_DELIVERY_FAILED";
-  originalError?: Error;
+  originalError: Error | undefined;
 
   constructor(message: string, originalError?: Error) {
     super(message);
@@ -40,7 +40,7 @@ export interface SmtpConfig {
  * Get the configured email provider from environment variables.
  */
 function getEmailProvider(): EmailProvider {
-  const provider = (process.env.EMAIL_PROVIDER ?? "").toLowerCase() as EmailProvider;
+  const provider = (process.env["EMAIL_PROVIDER"] ?? "").toLowerCase() as EmailProvider;
   
   // In production, default to lovable if using Lovable hosting
   if (import.meta.env.PROD && !provider) {
@@ -150,7 +150,7 @@ export async function sendLoginCode(
 async function sendWithLovable(
   recipient: string,
   code: string
-): Promise<{ delivered: boolean; devCode?: never }> {
+): Promise<{ delivered: boolean; devCode?: string }> {
   // Lovable's email service is automatically available in Lovable-hosted projects
   // The email template should be scaffolded in the Lovable editor
   
@@ -159,12 +159,12 @@ async function sendWithLovable(
     // This is a placeholder - Lovable's actual email API will be available
     // when the project is deployed on Lovable
     const response = await fetch(
-      `https://api.lovable.dev/projects/${process.env.LOVABLE_PROJECT_ID}/emails/send`,
+      `https://api.lovable.dev/projects/${process.env["LOVABLE_PROJECT_ID"]}/emails/send`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${process.env["LOVABLE_API_KEY"]}`,
         },
         body: JSON.stringify({
           template: "login-code",
@@ -202,16 +202,21 @@ async function sendWithSupabase(
   code: string
 ): Promise<{ delivered: boolean }> {
   const { createClient } = await import("@supabase/supabase-js");
+  const supabaseUrl = process.env["SUPABASE_URL"];
+  const supabaseKey = process.env["SUPABASE_ANON_KEY"];
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required for this email provider.");
+  }
   
   const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       db: { schema: "extensions" },
     }
   );
 
-  const fromEmail = process.env.EMAIL_FROM || "storyhouse@your-domain.com";
+  const fromEmail = process.env["EMAIL_FROM"] || "storyhouse@your-domain.com";
   
   const { error } = await supabase.rpc("send_login_code_email", {
     to_email: recipient,
@@ -234,8 +239,8 @@ async function sendWithResend(
   recipient: string,
   code: string
 ): Promise<{ delivered: boolean }> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM || "storyhouse@your-domain.com";
+  const apiKey = process.env["RESEND_API_KEY"];
+  const fromEmail = process.env["EMAIL_FROM"] || "storyhouse@your-domain.com";
 
   if (!apiKey) {
     throw new Error("RESEND_API_KEY environment variable is required");
@@ -297,8 +302,8 @@ async function sendWithPostmark(
   recipient: string,
   code: string
 ): Promise<{ delivered: boolean }> {
-  const apiKey = process.env.POSTMARK_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM || "storyhouse@your-domain.com";
+  const apiKey = process.env["POSTMARK_API_KEY"];
+  const fromEmail = process.env["EMAIL_FROM"] || "storyhouse@your-domain.com";
 
   if (!apiKey) {
     throw new Error("POSTMARK_API_KEY environment variable is required");
@@ -351,37 +356,10 @@ async function sendWithPostmark(
  * Send email using SMTP.
  */
 async function sendWithSmtp(
-  recipient: string,
-  code: string
+  _recipient: string,
+  _code: string
 ): Promise<{ delivered: boolean }> {
-  const smtpConfig: SmtpConfig = {
-    host: process.env.SMTP_HOST || "",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    username: process.env.SMTP_USERNAME,
-    password: process.env.SMTP_PASSWORD,
-  };
-
-  const fromEmail = process.env.EMAIL_FROM || "storyhouse@your-domain.com";
-
-  if (!smtpConfig.host) {
-    throw new Error("SMTP_HOST environment variable is required");
-  }
-
-  // For SMTP, we would typically use a library like nodemailer
-  // This is a simplified placeholder
-  console.log(
-    `[SMTP] Would send code to ${recipient} via ${smtpConfig.host}:${smtpConfig.port}`
-  );
-  console.log("  Note: SMTP implementation requires nodemailer or similar library");
-
-  // In a real implementation, you would use nodemailer:
-  // const nodemailer = require('nodemailer');
-  // const transporter = nodemailer.createTransport(smtpConfig);
-  // await transporter.sendMail({ from: fromEmail, to: recipient, subject: '...', html: '...' });
-
-  // For now, log that we would send it
-  return { delivered: true };
+  throw new EmailNotConfiguredError("SMTP delivery is not implemented. Configure Resend or Postmark.");
 }
 
 /**

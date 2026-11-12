@@ -10,7 +10,14 @@ export interface SessionPayload {
 }
 
 function getSecret(): string {
-  return process.env["SESSION_SECRET"] ?? "development-only-secret";
+  const secret = process.env["SESSION_SECRET"];
+  if (!secret || new TextEncoder().encode(secret).length < 32) {
+    throw new Error("SESSION_SECRET must be configured with at least 32 cryptographically random bytes.");
+  }
+  return secret;
+}
+  }
+  return secret;
 }
 
 const encoder = new TextEncoder();
@@ -32,10 +39,10 @@ function base64UrlToBytes(value: string): Uint8Array {
 async function hmacKey(): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    encoder.encode(getSecret()),
+    encoder.encode(getSessionSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"],
+    ["sign", "verify"],
   );
 }
 
@@ -46,17 +53,35 @@ export async function signSessionPayload(payload: SessionPayload): Promise<strin
 }
 
 export async function verifySessionToken(token: string | undefined | null): Promise<SessionPayload | null> {
-  if (!token || !token.includes(".")) return null;
-  const [body, signature] = token.split(".");
-  if (!body || !signature) return null;
-  const expected = await crypto.subtle.sign("HMAC", await hmacKey(), encoder.encode(body));
-  const expectedHex = bytesToBase64Url(new Uint8Array(expected));
-  if (expectedHex !== signature) return null;
+  if (!token || token.length > 2048) return null;
+  const parts = token.split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+
+  // Configuration failures deliberately remain visible; malformed or forged tokens fail closed.
+  const key = await hmacKey();
   try {
-    const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(body))) as SessionPayload;
-    if (!payload?.email || !payload?.role || typeof payload.exp !== "number") return null;
-    if (payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return payload;
+    const [body, encodedSignature] = parts;
+    if (!body || !encodedSignature) return null;
+    const signature = base64UrlToBytes(encodedSignature);
+    const signatureBuffer = new Uint8Array(signature.byteLength);
+    signatureBuffer.set(signature);
+    const bodyBytes = encoder.encode(body);
+    const bodyBuffer = new Uint8Array(bodyBytes.byteLength);
+    bodyBuffer.set(bodyBytes);
+    const valid = await crypto.subtle.verify("HMAC", key, signatureBuffer.buffer, bodyBuffer.buffer);
+    if (!valid) return null;
+
+    const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(body))) as Partial<SessionPayload>;
+    if (
+      typeof payload.email !== "string" ||
+      payload.email.length < 3 ||
+      payload.email.length > 254 ||
+      (payload.role !== "reader" && payload.role !== "admin") ||
+      typeof payload.exp !== "number" ||
+      !Number.isSafeInteger(payload.exp)
+    ) return null;
+    if (payload.exp <= Math.floor(Date.now() / 1000)) return null;
+    return payload as SessionPayload;
   } catch {
     return null;
   }
