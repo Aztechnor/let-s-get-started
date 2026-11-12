@@ -356,39 +356,10 @@ async function sendWithPostmark(
  * Send email using SMTP.
  */
 async function sendWithSmtp(
-  recipient: string,
-  code: string
+  _recipient: string,
+  _code: string
 ): Promise<{ delivered: boolean }> {
-  const username = process.env["SMTP_USERNAME"];
-  const password = process.env["SMTP_PASSWORD"];
-  const smtpConfig: SmtpConfig = {
-    host: process.env["SMTP_HOST"] || "",
-    port: parseInt(process.env["SMTP_PORT"] || "587"),
-    secure: process.env["SMTP_SECURE"] === "true",
-    ...(username ? { username } : {}),
-    ...(password ? { password } : {}),
-  };
-
-  const fromEmail = process.env["EMAIL_FROM"] || "storyhouse@your-domain.com";
-
-  if (!smtpConfig.host) {
-    throw new Error("SMTP_HOST environment variable is required");
-  }
-
-  // For SMTP, we would typically use a library like nodemailer
-  // This is a simplified placeholder
-  console.log(
-    `[SMTP] Would send code to ${recipient} via ${smtpConfig.host}:${smtpConfig.port}`
-  );
-  console.log("  Note: SMTP implementation requires nodemailer or similar library");
-
-  // In a real implementation, you would use nodemailer:
-  // const nodemailer = require('nodemailer');
-  // const transporter = nodemailer.createTransport(smtpConfig);
-  // await transporter.sendMail({ from: fromEmail, to: recipient, subject: '...', html: '...' });
-
-  // For now, log that we would send it
-  return { delivered: true };
+  throw new EmailNotConfiguredError("SMTP delivery is not implemented. Configure Resend or Postmark.");
 }
 
 /**

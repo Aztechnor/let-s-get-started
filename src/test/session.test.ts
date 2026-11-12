@@ -156,6 +156,10 @@ describe("signed session tokens", () => {
       role: "reader",
       exp: Math.floor(Date.now() / 1000) + 60,
     });
+      email: "reader@example.com",
+      role: "reader",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
     const [body, signature] = token.split(".");
     const firstSignatureChar = signature?.[0] ?? "a";
     const tamperedSignature = (firstSignatureChar === "a" ? "b" : "a") + (signature?.slice(1) ?? "");
@@ -170,5 +174,6 @@ describe("signed session tokens", () => {
       exp: Math.floor(Date.now() / 1000) - 1,
     });
     await expect(verifySessionToken(token)).resolves.toBeNull();
+  });
   });
 });
