@@ -17,5 +17,10 @@
 .site-header{padding-top:8px;padding-bottom:8px}
 .brand-logo{display:block;width:84px;height:84px;object-fit:contain;mix-blend-mode:multiply}
 .brand-small .brand-logo{width:68px;height:68px}
+main .home-button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:12px 20px;border-radius:4px;font-size:13px;font-weight:650;text-decoration:none}
+main .home-button-primary{background:var(--ink);border:1px solid var(--ink);color:var(--paper)}
+main .home-button-primary:hover{background:#344c59;border-color:#344c59;color:var(--paper)}
+main .home-button-secondary{background:transparent;border:1px solid #b8b8ab;color:var(--ink)}
+main .home-button-secondary:hover{background:rgba(255,255,255,.4);border-color:var(--ink);color:var(--ink)}
 @media(max-width:760px){.brand-logo{width:68px;height:68px}}
 .sidebar-search-heading{padding:8px 8px 4px;font-size:8px;font-weight:800;letter-spacing:.12em;color:#a18a74}.chapter-search-result{display:block;white-space:normal;border-top:1px solid #dcd8cd;border-radius:0;padding:11px 8px}.chapter-search-result b{display:block;font-size:10px;color:#38443d;margin-bottom:4px}.chapter-search-result small{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;color:#8b8e84;font-size:8px;line-height:1.6}

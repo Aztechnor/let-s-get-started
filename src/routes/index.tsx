@@ -50,10 +50,10 @@ function HomePage() {
             shared by invite, and never lost to the feed.
           </p>
           <div className="mt-8 flex justify-center gap-3">
-            <Link to="/read" className="rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground">
+            <Link to="/read" className="home-button home-button-primary">
               Enter the room
             </Link>
-            <a href="#library" className="rounded-lg border px-6 py-3 text-sm">
+            <a href="#library" className="home-button home-button-secondary">
               See the collection
             </a>
           </div>
@@ -96,7 +96,7 @@ function HomePage() {
 
         <section className="mx-auto max-w-3xl px-6 py-20 text-center">
           <p className="text-lg italic leading-relaxed">“A good story doesn’t end — it waits for you to come back.”</p>
-          <Link to="/read" className="mt-8 inline-block rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground">
+          <Link to="/read" className="home-button home-button-primary mt-8">
             Enter the room
           </Link>
         </section>
