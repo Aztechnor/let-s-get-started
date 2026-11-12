@@ -263,20 +263,29 @@ export interface AdminSummary {
 export const adminSummary = createServerFn({ method: "GET" }).handler(async (): Promise<AdminSummary> => {
   await requireAdmin();
   const db = await getAdminDb();
-  const [total, active, recent, stats, progressEmails] = await Promise.all([
-    db.from("allowed_readers").select("email", { count: "exact" }).then((r) => r.count ?? 0),
-    db.from("allowed_readers").select("email", { count: "exact" }).eq("active", true).then((r) => r.count ?? 0),
-    db.from("audit_log").select("*").order("id", { ascending: false }).limit(12),
-    Promise.resolve(getCollectionStats()),
+  const [totalResult, activeResult, recentResult, progressResult] = await Promise.all([
+    db.from("allowed_readers").select("email", { count: "exact", head: true }),
+    db.from("allowed_readers").select("email", { count: "exact", head: true }).eq("active", true),
+    db.from("audit_log").select("*").order("id", { ascending: false }).limit(20),
     db.from("reading_progress").select("email"),
   ]);
+  if (totalResult.error || activeResult.error || recentResult.error || progressResult.error) {
+    console.error("Admin summary query failed", {
+      total: totalResult.error,
+      active: activeResult.error,
+      activity: recentResult.error,
+      progress: progressResult.error,
+    });
+    throw new Error("Could not load the administrator dashboard. Please refresh and try again.");
+  }
+  const stats = getCollectionStats();
   return {
-    total_readers: total,
-    active_readers: active,
+    total_readers: totalResult.count ?? 0,
+    active_readers: activeResult.count ?? 0,
     book_count: stats.bookCount,
     story_count: stats.storyCount,
-    readers_reading: new Set((progressEmails.data ?? []).map((r) => r.email)).size,
-    recent_activity: (recent.data ?? []) as AuditEntry[],
+    readers_reading: new Set((progressResult.data ?? []).map((r) => r.email)).size,
+    recent_activity: (recentResult.data ?? []) as AuditEntry[],
   };
 });
 
@@ -312,11 +321,15 @@ export const adminReaders = createServerFn({ method: "GET" }).handler(
     const emails = readers.map((r) => r.email);
     const progress: Record<string, ReaderProgressInfo> = {};
     if (emails.length) {
-      const { data: rows } = await db
+      const { data: rows, error: progressError } = await db
         .from("reading_progress")
         .select("email, book_id, chapter_index, chapter_count, furthest_index, updated_at")
         .in("email", emails)
         .order("updated_at", { ascending: false });
+      if (progressError) {
+        console.error("Could not load reader progress", progressError);
+        throw new Error("Could not load reader progress. Please refresh and try again.");
+      }
       for (const row of (rows ?? []) as (ProgressRow & { email: string })[]) {
         if (progress[row.email]) continue; // rows come newest-first, keep the latest only
         const book = findBook(row.book_id);
@@ -338,7 +351,13 @@ export const adminReaders = createServerFn({ method: "GET" }).handler(
 );
 
 export const adminAddReader = createServerFn({ method: "POST" })
-  .inputValidator((input: { email: string; display_name?: string; note?: string }) => input)
+  .inputValidator((input: unknown) =>
+    z.object({
+      email: z.string().trim().email().max(254),
+      display_name: z.string().max(100).optional(),
+      note: z.string().max(250).optional(),
+    }).parse(input),
+  )
   .handler(async ({ data }) => {
     const admin = await requireAdmin();
     const email = emailNormalize(data.email);
@@ -368,7 +387,9 @@ export const adminAddReader = createServerFn({ method: "POST" })
   });
 
 export const adminBulkAddReaders = createServerFn({ method: "POST" })
-  .inputValidator((input: { emails: string }) => input)
+  .inputValidator((input: unknown) =>
+    z.object({ emails: z.string().max(20_000) }).parse(input),
+  )
   .handler(async ({ data }): Promise<{ results: BulkInviteResult[] }> => {
     const admin = await requireAdmin();
     const emails = parseBulkInviteEmails(data.emails ?? "");
@@ -433,13 +454,29 @@ export const adminBulkAddReaders = createServerFn({ method: "POST" })
   });
 
 export const adminUpdateReader = createServerFn({ method: "POST" })
-  .inputValidator((input: { email: string; active?: boolean; display_name?: string; note?: string }) => input)
+  .inputValidator((input: unknown) =>
+    z.object({
+      email: z.string().trim().email().max(254),
+      active: z.boolean().optional(),
+      display_name: z.string().max(100).optional(),
+      note: z.string().max(250).optional(),
+    }).refine(
+      (value) => value.active !== undefined || value.display_name !== undefined || value.note !== undefined,
+      "Provide at least one reader field to update.",
+    ).parse(input),
+  )
   .handler(async ({ data }) => {
     const admin = await requireAdmin();
     const email = emailNormalize(data.email);
     const db = await getAdminDb();
-    const { data: row } = await db.from("allowed_readers").select("*").eq("email", email).maybeSingle();
+    const { data: row, error: lookupError } = await db
+      .from("allowed_readers")
+      .select("*")
+      .eq("email", email)
+      .maybeSingle();
+    if (lookupError) throw new Error("Could not load that reader. Please try again.");
     if (!row) throw new Error("Reader not found.");
+
     const active = data.active ?? row.active;
     const displayName = (data.display_name ?? row.display_name).trim().slice(0, 100);
     const note = (data.note ?? row.note).trim().slice(0, 250);
@@ -448,20 +485,43 @@ export const adminUpdateReader = createServerFn({ method: "POST" })
       .update({ active, display_name: displayName, note })
       .eq("email", email);
     if (error) throw new Error("Could not update that reader.");
-    await db.from("login_codes").delete().eq("email", email);
-    await logAction(admin.email, active ? "reader_activated" : "reader_revoked", email);
+
+    if (active !== row.active) {
+      // Revocation clears any outstanding one-time challenge immediately.
+      const { error: codeError } = await db.from("login_codes").delete().eq("email", email);
+      if (codeError) console.error("Could not clear reader login challenge after status change", codeError);
+    }
+    const action =
+      active !== row.active
+        ? active
+          ? "reader_activated"
+          : "reader_revoked"
+        : "reader_profile_updated";
+    await logAction(admin.email, action, email, displayName !== row.display_name ? "Display name updated" : note !== row.note ? "Reader note updated" : "");
     return { ok: true, email, active };
   });
 
 export const adminDeleteReader = createServerFn({ method: "POST" })
-  .inputValidator((input: { email: string }) => input)
+  .inputValidator((input: unknown) =>
+    z.object({ email: z.string().trim().email().max(254) }).parse(input),
+  )
   .handler(async ({ data }) => {
     const admin = await requireAdmin();
     const email = emailNormalize(data.email);
     const db = await getAdminDb();
+    const { data: existing, error: lookupError } = await db
+      .from("allowed_readers")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+    if (lookupError) throw new Error("Could not load that reader. Please try again.");
+    if (!existing) throw new Error("Reader not found.");
+
+    // Delete pending codes first. The FK migration also enforces this cascade once deployed.
+    const { error: codeError } = await db.from("login_codes").delete().eq("email", email);
+    if (codeError) throw new Error("Could not clear the reader's pending sign-in code.");
     const { error } = await db.from("allowed_readers").delete().eq("email", email);
     if (error) throw new Error("Could not remove that reader.");
-    await db.from("login_codes").delete().eq("email", email);
     await logAction(admin.email, "reader_removed", email);
     return { ok: true };
   });
