@@ -205,8 +205,9 @@ describe("storyhouse-data.ts", () => {
     it("matches chapter titles", () => {
       if (firstBookId) {
         const book = findBook(firstBookId);
-        if (book && book.chapters.length > 0) {
-          const firstChapterTitle = book.chapters[0].title;
+        const firstChapter = book?.chapters[0];
+        if (firstChapter) {
+          const firstChapterTitle = firstChapter.title;
           const results = searchChapters(firstChapterTitle);
           expect(results.length).toBeGreaterThan(0);
         }

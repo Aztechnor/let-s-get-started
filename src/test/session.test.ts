@@ -4,6 +4,8 @@ import {
   getSession,
   clearSession,
   safeEqual,
+  signSessionPayload,
+  verifySessionToken,
 } from "@/lib/session.server";
 
 // Mock the cookie handling since we're in a test environment
@@ -97,10 +99,10 @@ describe("session utility functions", () => {
       const cookies: Record<string, string> = {};
       cookieString.split(";").forEach((cookie) => {
         const [name, ...value] = cookie.trim().split("=");
-        cookies[name] = value.join("=");
+        if (name) cookies[name] = value.join("=");
       });
-      expect(cookies.name).toBe("value");
-      expect(cookies.name2).toBe("value2");
+      expect(cookies["name"]).toBe("value");
+      expect(cookies["name2"]).toBe("value2");
     });
 
     it("should handle URL-encoded cookie values", () => {
@@ -108,9 +110,9 @@ describe("session utility functions", () => {
       const cookies: Record<string, string> = {};
       cookieString.split(";").forEach((cookie) => {
         const [name, ...value] = cookie.trim().split("=");
-        cookies[name] = decodeURIComponent(value.join("="));
+        if (name) cookies[name] = decodeURIComponent(value.join("="));
       });
-      expect(cookies.name).toBe("hello world");
+      expect(cookies["name"]).toBe("hello world");
     });
   });
 });
