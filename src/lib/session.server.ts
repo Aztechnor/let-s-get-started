@@ -16,9 +16,6 @@ function getSecret(): string {
   }
   return secret;
 }
-  }
-  return secret;
-}
 
 const encoder = new TextEncoder();
 
@@ -39,7 +36,7 @@ function base64UrlToBytes(value: string): Uint8Array {
 async function hmacKey(): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    encoder.encode(getSessionSecret()),
+    encoder.encode(getSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
