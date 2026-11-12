@@ -4,8 +4,6 @@ import {
   getSession,
   clearSession,
   safeEqual,
-  signSessionPayload,
-  verifySessionToken,
 } from "@/lib/session.server";
 
 // Mock the cookie handling since we're in a test environment

@@ -127,14 +127,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      consume_auth_rate_limit: {
-        Args: {
-          p_key_hash: string
-          p_limit: number
-          p_window_seconds: number
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
