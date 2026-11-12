@@ -10,7 +10,14 @@ export interface SessionPayload {
 }
 
 function getSecret(): string {
-  return process.env["SESSION_SECRET"] ?? "development-only-secret";
+  const secret = process.env["SESSION_SECRET"];
+  if (!secret) {
+    throw new Error("SESSION_SECRET must be configured for signed reader sessions.");
+  }
+  if (new TextEncoder().encode(secret).length < 32) {
+    throw new Error("SESSION_SECRET must be at least 32 bytes.");
+  }
+  return secret;
 }
 
 const encoder = new TextEncoder();
