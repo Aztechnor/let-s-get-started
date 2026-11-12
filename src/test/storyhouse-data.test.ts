@@ -143,10 +143,7 @@ describe("storyhouse-data.ts", () => {
 
     it("story count is sum of all book story counts", () => {
       const stats = getCollectionStats();
-      const expectedStoryCount = library.reduce(
-        (sum, book) => sum + book.story_count,
-        0
-      );
+      const expectedStoryCount = library.reduce((sum, book) => sum + book.story_count, 0);
       expect(stats.storyCount).toBe(expectedStoryCount);
     });
   });

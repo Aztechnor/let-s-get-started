@@ -123,18 +123,15 @@ EMAIL_PROVIDER=supabase
 Then update `src/lib/email.server.ts`:
 
 ```typescript
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
 
 export async function sendLoginCode(recipient: string, code: string): Promise<void> {
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!
-  )
-  
-  await supabase.rpc('send_login_code', {
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+
+  await supabase.rpc("send_login_code", {
     to_email: recipient,
-    code
-  })
+    code,
+  });
 }
 ```
 
@@ -145,22 +142,22 @@ You can integrate with any email service (Resend, Postmark, SendGrid, etc.):
 ```typescript
 // Example with Resend
 export async function sendLoginCode(recipient: string, code: string): Promise<void> {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       from: process.env.EMAIL_FROM,
       to: recipient,
-      subject: 'Your Storyhouse sign-in code',
-      html: `<p>Your sign-in code is: <strong>${code}</strong></p>`
-    })
-  })
-  
+      subject: "Your Storyhouse sign-in code",
+      html: `<p>Your sign-in code is: <strong>${code}</strong></p>`,
+    }),
+  });
+
   if (!response.ok) {
-    throw new Error('Failed to send email')
+    throw new Error("Failed to send email");
   }
 }
 ```
@@ -233,16 +230,16 @@ CREATE INDEX idx_audit_log_actor ON audit_log(actor_email);
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run build:dev` | Build with development mode |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format code with Prettier |
-| `npm run test` | Run all tests |
-| `npm run test:watch` | Run tests in watch mode |
+| Script               | Description                 |
+| -------------------- | --------------------------- |
+| `npm run dev`        | Start development server    |
+| `npm run build`      | Build for production        |
+| `npm run build:dev`  | Build with development mode |
+| `npm run preview`    | Preview production build    |
+| `npm run lint`       | Run ESLint                  |
+| `npm run format`     | Format code with Prettier   |
+| `npm run test`       | Run all tests               |
+| `npm run test:watch` | Run tests in watch mode     |
 
 ## Testing
 
@@ -270,6 +267,7 @@ npm run test src/test/bulk-invitations.test.ts
 ### Self-hosted
 
 1. Build the project:
+
    ```bash
    npm run build
    ```
@@ -319,14 +317,14 @@ docker run -p 3000:3000 -e ADMIN_EMAIL -e ADMIN_PASSWORD -e SESSION_SECRET story
 
 When inviting readers in bulk, each email receives one of these statuses:
 
-| Status | Meaning |
-|--------|---------|
-| `invited` | New reader added to the list |
-| `reactivated` | Previously deactivated reader reactivated |
-| `already_active` | Reader was already active |
-| `invalid` | Invalid email address format |
-| `admin_account` | Cannot invite the admin email |
-| `failed` | Error adding the reader |
+| Status           | Meaning                                   |
+| ---------------- | ----------------------------------------- |
+| `invited`        | New reader added to the list              |
+| `reactivated`    | Previously deactivated reader reactivated |
+| `already_active` | Reader was already active                 |
+| `invalid`        | Invalid email address format              |
+| `admin_account`  | Cannot invite the admin email             |
+| `failed`         | Error adding the reader                   |
 
 ## Security
 

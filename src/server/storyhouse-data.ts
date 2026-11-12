@@ -116,7 +116,10 @@ export function bookRef(book: RawBook): BookRef {
   };
 }
 
-export function getChapter(bookId: string, chapterIndex: number): { book: BookRef; chapter: RawChapter } | null {
+export function getChapter(
+  bookId: string,
+  chapterIndex: number,
+): { book: BookRef; chapter: RawChapter } | null {
   const book = findBook(bookId);
   if (!book) return null;
   const chapter = book.chapters[chapterIndex];

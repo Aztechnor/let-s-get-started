@@ -80,10 +80,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#f6f3ec" },
       { title: "Storyhouse — a reading room for stories that stay" },
-      { name: "description", content: "A private digital reading room for Under Blue Skies and SPOOK by Blex Wakabi." },
+      {
+        name: "description",
+        content: "A private digital reading room for Under Blue Skies and SPOOK by Blex Wakabi.",
+      },
       { name: "author", content: "Blex Wakabi" },
       { property: "og:title", content: "Storyhouse — a reading room for stories that stay" },
-      { property: "og:description", content: "A private digital reading room for Under Blue Skies and SPOOK by Blex Wakabi." },
+      {
+        property: "og:description",
+        content: "A private digital reading room for Under Blue Skies and SPOOK by Blex Wakabi.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },

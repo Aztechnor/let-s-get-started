@@ -43,10 +43,10 @@ export function validEmail(value: string): boolean {
   const [local, domain] = value.split("@");
   return Boolean(
     local &&
-      domain &&
-      domain.includes(".") &&
-      !value.includes(" ") &&
-      !domain.startsWith(".") &&
-      !domain.endsWith("."),
+    domain &&
+    domain.includes(".") &&
+    !value.includes(" ") &&
+    !domain.startsWith(".") &&
+    !domain.endsWith("."),
   );
 }

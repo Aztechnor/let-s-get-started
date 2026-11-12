@@ -4,8 +4,16 @@ import alexandriaLogo from "@/assets/library-of-alexandria-logo.png.asset.json";
 
 function Brand({ small }: { small?: boolean }) {
   return (
-    <Link to="/" className={"brand" + (small ? " brand-small" : "")} aria-label="Library of Alexandria — Storyhouse home">
-      <img className="brand-logo" src={alexandriaLogo.url} alt="Library of Alexandria — Where stories come alive" />
+    <Link
+      to="/"
+      className={"brand" + (small ? " brand-small" : "")}
+      aria-label="Library of Alexandria — Storyhouse home"
+    >
+      <img
+        className="brand-logo"
+        src={alexandriaLogo.url}
+        alt="Library of Alexandria — Where stories come alive"
+      />
     </Link>
   );
 }
@@ -38,9 +46,7 @@ export function SiteHeader({
           <Link to="/cards" className={active === "cards" ? "active" : undefined}>
             Quote studio
           </Link>
-          <Link to="/read">
-            Reader access
-          </Link>
+          <Link to="/read">Reader access</Link>
         </nav>
       )}
       {right ?? (
@@ -74,4 +80,3 @@ export function SiteFooter() {
     </footer>
   );
 }
-

@@ -1,1 +1,63 @@
-{"source": "code-archive", "source_artifact": "user-uploads://storyhouse-website.zip (Flask + SQLite + vanilla JS, app name Storyhouse / story-shelf)", "capabilities": [{"capability": "code", "source": "Flask app + static JS pages", "outcome": "Rebuilt as TanStack Start + Lovable Cloud (routes /, /read, /cards, /admin)", "status": "migrate", "next_action": "Port pages and server functions"}, {"capability": "schema", "source": "SQLite: allowed_readers, login_codes, audit_log", "outcome": "Recreated in Lovable Cloud Postgres", "status": "migrate", "next_action": "Apply migration"}, {"capability": "records", "source": "No record export in archive (no .db file shipped)", "outcome": "Reader list starts empty; existing readers to be imported after preview", "status": "pending", "next_action": "Request SQLite export of allowed_readers after preview"}, {"capability": "auth", "source": "Flask session cookies; whitelisted email + one-time code; admin via ADMIN_EMAIL/ADMIN_PASSWORD env", "outcome": "Keep email-code invite flow (user choice); sessions become signed httpOnly cookies; admin credentials move to Lovable secrets", "status": "migrate", "next_action": "Implement"}, {"capability": "book_content", "source": "data/books.json (85 chapters, full text) + source PDFs", "outcome": "books.json bundled server-side; PDFs in private Cloud storage served to signed-in readers only", "status": "migrate", "next_action": "Upload PDFs, wire data module"}, {"capability": "email", "source": "SMTP env config for one-time codes", "outcome": "Replaced by Lovable managed emails", "status": "pending", "next_action": "User sets up email domain; then scaffold templates + send helper"}, {"capability": "public_endpoints", "source": "None external (single-origin app)", "outcome": "No external callers to preserve", "status": "verified", "next_action": "None"}, {"capability": "cutover", "source": "Local Flask app, not deployed", "outcome": "No domain/hosting cutover needed yet", "status": "pending", "next_action": "Publish when user asks"}], "notes": "Cover images via Lovable Assets CDN pointers. Reader PDF route verifies signed session cookie. Email domain setup dialog shown to user."}
+{
+  "source": "code-archive",
+  "source_artifact": "user-uploads://storyhouse-website.zip (Flask + SQLite + vanilla JS, app name Storyhouse / story-shelf)",
+  "capabilities": [
+    {
+      "capability": "code",
+      "source": "Flask app + static JS pages",
+      "outcome": "Rebuilt as TanStack Start + Lovable Cloud (routes /, /read, /cards, /admin)",
+      "status": "migrate",
+      "next_action": "Port pages and server functions"
+    },
+    {
+      "capability": "schema",
+      "source": "SQLite: allowed_readers, login_codes, audit_log",
+      "outcome": "Recreated in Lovable Cloud Postgres",
+      "status": "migrate",
+      "next_action": "Apply migration"
+    },
+    {
+      "capability": "records",
+      "source": "No record export in archive (no .db file shipped)",
+      "outcome": "Reader list starts empty; existing readers to be imported after preview",
+      "status": "pending",
+      "next_action": "Request SQLite export of allowed_readers after preview"
+    },
+    {
+      "capability": "auth",
+      "source": "Flask session cookies; whitelisted email + one-time code; admin via ADMIN_EMAIL/ADMIN_PASSWORD env",
+      "outcome": "Keep email-code invite flow (user choice); sessions become signed httpOnly cookies; admin credentials move to Lovable secrets",
+      "status": "migrate",
+      "next_action": "Implement"
+    },
+    {
+      "capability": "book_content",
+      "source": "data/books.json (85 chapters, full text) + source PDFs",
+      "outcome": "books.json bundled server-side; PDFs in private Cloud storage served to signed-in readers only",
+      "status": "migrate",
+      "next_action": "Upload PDFs, wire data module"
+    },
+    {
+      "capability": "email",
+      "source": "SMTP env config for one-time codes",
+      "outcome": "Replaced by Lovable managed emails",
+      "status": "pending",
+      "next_action": "User sets up email domain; then scaffold templates + send helper"
+    },
+    {
+      "capability": "public_endpoints",
+      "source": "None external (single-origin app)",
+      "outcome": "No external callers to preserve",
+      "status": "verified",
+      "next_action": "None"
+    },
+    {
+      "capability": "cutover",
+      "source": "Local Flask app, not deployed",
+      "outcome": "No domain/hosting cutover needed yet",
+      "status": "pending",
+      "next_action": "Publish when user asks"
+    }
+  ],
+  "notes": "Cover images via Lovable Assets CDN pointers. Reader PDF route verifies signed session cookie. Email domain setup dialog shown to user."
+}

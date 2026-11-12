@@ -7,9 +7,15 @@ export const Route = createFileRoute("/cards")({
   head: () => ({
     meta: [
       { title: "Quote studio — Storyhouse" },
-      { name: "description", content: "Turn your favourite lines from the reading room into shareable quote cards." },
+      {
+        name: "description",
+        content: "Turn your favourite lines from the reading room into shareable quote cards.",
+      },
       { property: "og:title", content: "Quote studio — Storyhouse" },
-      { property: "og:description", content: "Turn your favourite lines from the reading room into shareable quote cards." },
+      {
+        property: "og:description",
+        content: "Turn your favourite lines from the reading room into shareable quote cards.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -20,16 +26,66 @@ export const Route = createFileRoute("/cards")({
 type TemplateId = "bluehour" | "wildflower" | "archive" | "redacted" | "moonlit" | "postcard";
 
 const QUOTES: { quote: string; source: string; book: "under" | "spook"; template: TemplateId }[] = [
-  { quote: "To have loved and lost is better than to have never loved at all.", source: "UNDER BLUE SKIES · EPIGRAPH", book: "under", template: "wildflower" },
-  { quote: "It's easy to love the idea of someone, but much harder to love the reality.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "bluehour" },
-  { quote: "Some wounds don’t heal. Some scars don’t fade.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "moonlit" },
-  { quote: "For every dawn follows darkest day.", source: "UNDER BLUE SKIES · THE OPENING POEM", book: "under", template: "postcard" },
-  { quote: "Promise me this, that you’ll never be afraid to be human.", source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU", book: "under", template: "wildflower" },
-  { quote: "Land that sits too quietly.", source: "SPOOK · THE LAND", book: "spook", template: "archive" },
-  { quote: "The Great North Road does not forget. It swallows.", source: "SPOOK · THE HITCHHIKER", book: "spook", template: "redacted" },
-  { quote: "The land remembers. It sends its teeth.", source: "SPOOK · NANDI BEAR", book: "spook", template: "moonlit" },
-  { quote: "You cannot build healing on a place that has not yet finished its grieving.", source: "SPOOK · THE LAND", book: "spook", template: "archive" },
-  { quote: "Every story, a different document.", source: "SPOOK · COVER LINE", book: "spook", template: "redacted" },
+  {
+    quote: "To have loved and lost is better than to have never loved at all.",
+    source: "UNDER BLUE SKIES · EPIGRAPH",
+    book: "under",
+    template: "wildflower",
+  },
+  {
+    quote: "It's easy to love the idea of someone, but much harder to love the reality.",
+    source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU",
+    book: "under",
+    template: "bluehour",
+  },
+  {
+    quote: "Some wounds don’t heal. Some scars don’t fade.",
+    source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU",
+    book: "under",
+    template: "moonlit",
+  },
+  {
+    quote: "For every dawn follows darkest day.",
+    source: "UNDER BLUE SKIES · THE OPENING POEM",
+    book: "under",
+    template: "postcard",
+  },
+  {
+    quote: "Promise me this, that you’ll never be afraid to be human.",
+    source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU",
+    book: "under",
+    template: "wildflower",
+  },
+  {
+    quote: "Land that sits too quietly.",
+    source: "SPOOK · THE LAND",
+    book: "spook",
+    template: "archive",
+  },
+  {
+    quote: "The Great North Road does not forget. It swallows.",
+    source: "SPOOK · THE HITCHHIKER",
+    book: "spook",
+    template: "redacted",
+  },
+  {
+    quote: "The land remembers. It sends its teeth.",
+    source: "SPOOK · NANDI BEAR",
+    book: "spook",
+    template: "moonlit",
+  },
+  {
+    quote: "You cannot build healing on a place that has not yet finished its grieving.",
+    source: "SPOOK · THE LAND",
+    book: "spook",
+    template: "archive",
+  },
+  {
+    quote: "Every story, a different document.",
+    source: "SPOOK · COVER LINE",
+    book: "spook",
+    template: "redacted",
+  },
 ];
 
 const TEMPLATES: { id: TemplateId; name: string; desc: string }[] = [
@@ -42,9 +98,18 @@ const TEMPLATES: { id: TemplateId; name: string; desc: string }[] = [
 ];
 
 // Card artwork colours are part of each printed design (canvas pixels), not app theme tokens.
-const PALETTES: Record<TemplateId, { bg1: string; bg2: string; ink: string; line: string; accent: string }> = {
+const PALETTES: Record<
+  TemplateId,
+  { bg1: string; bg2: string; ink: string; line: string; accent: string }
+> = {
   bluehour: { bg1: "#eef3ef", bg2: "#c4dce0", ink: "#2a4a5b", line: "#6b99a8", accent: "#b78768" },
-  wildflower: { bg1: "#f7f0df", bg2: "#eadfc6", ink: "#355545", line: "#91a68f", accent: "#719879" },
+  wildflower: {
+    bg1: "#f7f0df",
+    bg2: "#eadfc6",
+    ink: "#355545",
+    line: "#91a68f",
+    accent: "#719879",
+  },
   archive: { bg1: "#252824", bg2: "#171a18", ink: "#dfc589", line: "#947d4d", accent: "#a98c52" },
   redacted: { bg1: "#2a2825", bg2: "#161716", ink: "#efe4d0", line: "#aa6859", accent: "#c45e4f" },
   moonlit: { bg1: "#41496c", bg2: "#191e34", ink: "#f2e9d8", line: "#9aa3ca", accent: "#d4bf8c" },
@@ -60,7 +125,14 @@ interface CardOptions {
   number: number;
 }
 
-function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, outer: number, inner: number, points = 8) {
+function drawStar(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  outer: number,
+  inner: number,
+  points = 8,
+) {
   ctx.beginPath();
   for (let i = 0; i < points * 2; i++) {
     const angle = -Math.PI / 2 + (i * Math.PI) / points;
@@ -108,7 +180,11 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
   if (theme === "bluehour" || theme === "postcard") {
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = "#fff";
-    for (const [x, y, r] of [[150, 220, 80], [820, 280, 115], [920, 1020, 60]] as const) {
+    for (const [x, y, r] of [
+      [150, 220, 80],
+      [820, 280, 115],
+      [920, 1020, 60],
+    ] as const) {
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
@@ -194,7 +270,15 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.font = `700 18px ${sans}`;
-  ctx.fillText(doc ? "RECOVERED DOCUMENT / STORYHOUSE" : theme === "postcard" ? "GREETINGS FROM STORYHOUSE" : "A LINE TO KEEP", 112, 135);
+  ctx.fillText(
+    doc
+      ? "RECOVERED DOCUMENT / STORYHOUSE"
+      : theme === "postcard"
+        ? "GREETINGS FROM STORYHOUSE"
+        : "A LINE TO KEEP",
+    112,
+    135,
+  );
   ctx.textAlign = "right";
   ctx.font = `600 16px ${sans}`;
   ctx.fillText(`${String(o.number).padStart(2, "0")} / ✳`, 968, 135);
@@ -236,7 +320,12 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
 
   ctx.font = `700 19px ${sans}`;
   const attribution = (o.attribution.trim() || "STORYHOUSE").toUpperCase();
-  ctx.fillText(attribution.length > 54 ? attribution.slice(0, 51) + "…" : attribution, 540, 980, 820);
+  ctx.fillText(
+    attribution.length > 54 ? attribution.slice(0, 51) + "…" : attribution,
+    540,
+    980,
+    820,
+  );
   if (o.signature.trim()) {
     ctx.font = "italic 24px Georgia, serif";
     ctx.globalAlpha = 0.8;
@@ -252,7 +341,13 @@ function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
 }
 
 function safeFileName(text: string) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "storyhouse-quote";
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "storyhouse-quote"
+  );
 }
 
 function TemplateSwatch({ id }: { id: TemplateId }) {
@@ -261,7 +356,10 @@ function TemplateSwatch({ id }: { id: TemplateId }) {
     <span
       aria-hidden
       className="block h-10 w-10 shrink-0 rounded-md border"
-      style={{ background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`, boxShadow: `inset 0 0 0 3px ${p.accent}55` }}
+      style={{
+        background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`,
+        boxShadow: `inset 0 0 0 3px ${p.accent}55`,
+      }}
     />
   );
 }
@@ -313,7 +411,11 @@ function CardsPage() {
     const file = new File([blob], `${safeFileName(attribution)}.png`, { type: "image/png" });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: "A line to keep · Storyhouse", text: options.quote });
+        await navigator.share({
+          files: [file],
+          title: "A line to keep · Storyhouse",
+          text: options.quote,
+        });
       } catch {
         /* share sheet dismissed */
       }
@@ -322,7 +424,8 @@ function CardsPage() {
     }
   };
 
-  const field = "w-full rounded-lg border border-input bg-card px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
+  const field =
+    "w-full rounded-lg border border-input bg-card px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -332,11 +435,15 @@ function CardsPage() {
         <section className="space-y-6">
           <div>
             <h1 className="text-3xl font-semibold">Quote studio</h1>
-            <p className="mt-3 text-sm text-muted-foreground">Pick a line, choose a design, and download a card worth keeping.</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Pick a line, choose a design, and download a card worth keeping.
+            </p>
           </div>
 
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Design</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Design
+            </p>
             <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
               {TEMPLATES.map((t) => (
                 <button
@@ -361,7 +468,9 @@ function CardsPage() {
           </div>
 
           <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Choose a line</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Choose a line
+            </span>
             <select
               value={selected}
               onChange={(e) => {
@@ -375,22 +484,47 @@ function CardsPage() {
             >
               {QUOTES.map((q, i) => (
                 <option key={i} value={i}>
-                  {String(i + 1).padStart(2, "0")} · {q.quote.length > 65 ? q.quote.slice(0, 62) + "…" : q.quote} — {q.book === "spook" ? "SPOOK" : "UNDER BLUE SKIES"}
+                  {String(i + 1).padStart(2, "0")} ·{" "}
+                  {q.quote.length > 65 ? q.quote.slice(0, 62) + "…" : q.quote} —{" "}
+                  {q.book === "spook" ? "SPOOK" : "UNDER BLUE SKIES"}
                 </option>
               ))}
             </select>
           </label>
 
-          <textarea value={custom} onChange={(e) => setCustom(e.target.value)} rows={3} placeholder="…or write your own quote" className={field} />
-          <input value={attribution} onChange={(e) => setAttribution(e.target.value)} placeholder="Attribution" className={field} />
-          <input value={signature} onChange={(e) => setSignature(e.target.value)} placeholder="Signature (optional)" className={field} />
+          <textarea
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            rows={3}
+            placeholder="…or write your own quote"
+            className={field}
+          />
+          <input
+            value={attribution}
+            onChange={(e) => setAttribution(e.target.value)}
+            placeholder="Attribution"
+            className={field}
+          />
+          <input
+            value={signature}
+            onChange={(e) => setSignature(e.target.value)}
+            placeholder="Signature (optional)"
+            className={field}
+          />
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={ornament} onChange={(e) => setOrnament(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={ornament}
+              onChange={(e) => setOrnament(e.target.checked)}
+            />
             Show star ornament
           </label>
 
           <div className="flex gap-3">
-            <button onClick={download} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground">
+            <button
+              onClick={download}
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
+            >
               Download PNG ↓
             </button>
             <button onClick={share} className="rounded-lg border px-5 py-2 text-sm">
@@ -400,9 +534,14 @@ function CardsPage() {
         </section>
 
         <section className="lg:sticky lg:top-8 lg:self-start">
-          <canvas ref={canvasRef} className="aspect-[4/5] w-full rounded-xl border shadow-sm" aria-label="Quote card preview" />
+          <canvas
+            ref={canvasRef}
+            className="aspect-[4/5] w-full rounded-xl border shadow-sm"
+            aria-label="Quote card preview"
+          />
           <p className="mt-3 text-center text-xs text-muted-foreground">
-            {TEMPLATES.find((t) => t.id === template)?.name} — {TEMPLATES.find((t) => t.id === template)?.desc}
+            {TEMPLATES.find((t) => t.id === template)?.name} —{" "}
+            {TEMPLATES.find((t) => t.id === template)?.desc}
           </p>
         </section>
       </main>

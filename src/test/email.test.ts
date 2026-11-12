@@ -77,47 +77,39 @@ describe("email.server.ts", () => {
   describe("sendLoginCode", () => {
     describe("input validation", () => {
       it("throws error when recipient is empty", async () => {
+        await expect(sendLoginCode("", "123456")).rejects.toThrow(EmailDeliveryError);
         await expect(sendLoginCode("", "123456")).rejects.toThrow(
-          EmailDeliveryError
-        );
-        await expect(sendLoginCode("", "123456")).rejects.toThrow(
-          "Recipient email and code are required"
+          "Recipient email and code are required",
         );
       });
 
       it("throws error when code is empty", async () => {
+        await expect(sendLoginCode("test@example.com", "")).rejects.toThrow(EmailDeliveryError);
         await expect(sendLoginCode("test@example.com", "")).rejects.toThrow(
-          EmailDeliveryError
-        );
-        await expect(sendLoginCode("test@example.com", "")).rejects.toThrow(
-          "Recipient email and code are required"
+          "Recipient email and code are required",
         );
       });
 
       it("throws error for invalid email format", async () => {
+        await expect(sendLoginCode("not-an-email", "123456")).rejects.toThrow(EmailDeliveryError);
         await expect(sendLoginCode("not-an-email", "123456")).rejects.toThrow(
-          EmailDeliveryError
-        );
-        await expect(sendLoginCode("not-an-email", "123456")).rejects.toThrow(
-          "Invalid email address"
+          "Invalid email address",
         );
       });
 
       it("throws error for invalid code format", async () => {
-        await expect(
-          sendLoginCode("test@example.com", "123")
-        ).rejects.toThrow(EmailDeliveryError);
-        await expect(
-          sendLoginCode("test@example.com", "123")
-        ).rejects.toThrow("Code must be a 6-digit number");
+        await expect(sendLoginCode("test@example.com", "123")).rejects.toThrow(EmailDeliveryError);
+        await expect(sendLoginCode("test@example.com", "123")).rejects.toThrow(
+          "Code must be a 6-digit number",
+        );
 
-        await expect(
-          sendLoginCode("test@example.com", "abcdef")
-        ).rejects.toThrow(EmailDeliveryError);
+        await expect(sendLoginCode("test@example.com", "abcdef")).rejects.toThrow(
+          EmailDeliveryError,
+        );
 
-        await expect(
-          sendLoginCode("test@example.com", "1234567")
-        ).rejects.toThrow(EmailDeliveryError);
+        await expect(sendLoginCode("test@example.com", "1234567")).rejects.toThrow(
+          EmailDeliveryError,
+        );
       });
     });
 
@@ -125,9 +117,9 @@ describe("email.server.ts", () => {
       it("returns devCode in development mode without email provider", async () => {
         // Ensure we're in development mode
         setEnv({ NODE_ENV: "development" });
-        
+
         const result = await sendLoginCode("test@example.com", "123456");
-        
+
         expect(result.delivered).toBe(false);
         expect(result.devCode).toBe("123456");
       });
@@ -137,9 +129,9 @@ describe("email.server.ts", () => {
           NODE_ENV: "development",
           EMAIL_PROVIDER: "none",
         });
-        
+
         const result = await sendLoginCode("test@example.com", "123456");
-        
+
         expect(result.delivered).toBe(false);
         expect(result.devCode).toBe("123456");
       });
@@ -153,7 +145,7 @@ describe("email.server.ts", () => {
           NODE_ENV: "production",
           EMAIL_PROVIDER: "none",
         });
-        
+
         // In the actual implementation, this would check import.meta.env.PROD
         // For testing purposes, we verify the behavior when provider is "none"
         const result = await sendLoginCode("test@example.com", "123456");
@@ -166,7 +158,7 @@ describe("email.server.ts", () => {
           NODE_ENV: "production",
           EMAIL_PROVIDER: "",
         });
-        
+
         // This will still work in dev mode
         const result = await sendLoginCode("test@example.com", "123456");
         expect(result.devCode).toBe("123456");
@@ -179,7 +171,7 @@ describe("email.server.ts", () => {
         setEnv({
           NODE_ENV: "production",
         });
-        
+
         // We can't fully test this without mocking the entire module
         // but we can verify the logic path
         // The actual lovable call would fail without proper setup
@@ -189,62 +181,60 @@ describe("email.server.ts", () => {
     describe("valid email formats", () => {
       it("accepts standard email format", async () => {
         setEnv({ NODE_ENV: "development" });
-        
+
         const result = await sendLoginCode("user@example.com", "123456");
         expect(result.devCode).toBe("123456");
       });
 
       it("accepts email with subdomains", async () => {
         setEnv({ NODE_ENV: "development" });
-        
+
         const result = await sendLoginCode("user@sub.example.com", "123456");
         expect(result.devCode).toBe("123456");
       });
 
       it("accepts email with plus addressing", async () => {
         setEnv({ NODE_ENV: "development" });
-        
+
         const result = await sendLoginCode("user+tag@example.com", "123456");
         expect(result.devCode).toBe("123456");
       });
 
       it("rejects email without @", async () => {
-        await expect(
-          sendLoginCode("userexample.com", "123456")
-        ).rejects.toThrow(EmailDeliveryError);
+        await expect(sendLoginCode("userexample.com", "123456")).rejects.toThrow(
+          EmailDeliveryError,
+        );
       });
 
       it("rejects email without domain", async () => {
-        await expect(
-          sendLoginCode("user@", "123456")
-        ).rejects.toThrow(EmailDeliveryError);
+        await expect(sendLoginCode("user@", "123456")).rejects.toThrow(EmailDeliveryError);
       });
 
       it("rejects email with spaces", async () => {
-        await expect(
-          sendLoginCode("user @example.com", "123456")
-        ).rejects.toThrow(EmailDeliveryError);
+        await expect(sendLoginCode("user @example.com", "123456")).rejects.toThrow(
+          EmailDeliveryError,
+        );
       });
     });
 
     describe("valid code formats", () => {
       it("accepts 6-digit numeric code", async () => {
         setEnv({ NODE_ENV: "development" });
-        
+
         const result = await sendLoginCode("test@example.com", "123456");
         expect(result.devCode).toBe("123456");
       });
 
       it("accepts code starting with zero", async () => {
         setEnv({ NODE_ENV: "development" });
-        
+
         const result = await sendLoginCode("test@example.com", "001234");
         expect(result.devCode).toBe("001234");
       });
 
       it("accepts code with all same digits", async () => {
         setEnv({ NODE_ENV: "development" });
-        
+
         const result = await sendLoginCode("test@example.com", "111111");
         expect(result.devCode).toBe("111111");
       });

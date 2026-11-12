@@ -150,26 +150,38 @@ describe("parseBulkInviteEmails - Extended Tests", () => {
 
   describe("max limit enforcement", () => {
     it("accepts exactly MAX_BULK_INVITES emails", () => {
-      const emails = Array.from({ length: MAX_BULK_INVITES }, (_, i) => `user${i}@example.com`).join(",");
+      const emails = Array.from(
+        { length: MAX_BULK_INVITES },
+        (_, i) => `user${i}@example.com`,
+      ).join(",");
       const result = parseBulkInviteEmails(emails);
       expect(result.length).toBe(MAX_BULK_INVITES);
     });
 
     it("throws error when exceeding MAX_BULK_INVITES", () => {
-      const emails = Array.from({ length: MAX_BULK_INVITES + 1 }, (_, i) => `user${i}@example.com`).join(",");
+      const emails = Array.from(
+        { length: MAX_BULK_INVITES + 1 },
+        (_, i) => `user${i}@example.com`,
+      ).join(",");
       expect(() => parseBulkInviteEmails(emails)).toThrow();
     });
 
     it("throws error with correct message", () => {
-      const emails = Array.from({ length: MAX_BULK_INVITES + 1 }, (_, i) => `user${i}@example.com`).join(",");
+      const emails = Array.from(
+        { length: MAX_BULK_INVITES + 1 },
+        (_, i) => `user${i}@example.com`,
+      ).join(",");
       expect(() => parseBulkInviteEmails(emails)).toThrow(
-        `Invite up to ${MAX_BULK_INVITES} readers at a time.`
+        `Invite up to ${MAX_BULK_INVITES} readers at a time.`,
       );
     });
 
     it("handles exactly MAX_BULK_INVITES with duplicates", () => {
       // Create a list with MAX_BULK_INVITES unique emails plus duplicates
-      const uniqueEmails = Array.from({ length: MAX_BULK_INVITES }, (_, i) => `user${i}@example.com`);
+      const uniqueEmails = Array.from(
+        { length: MAX_BULK_INVITES },
+        (_, i) => `user${i}@example.com`,
+      );
       const emails = [...uniqueEmails, ...uniqueEmails.slice(0, 10)].join(",");
       // Should not throw because deduplication will reduce the count
       const result = parseBulkInviteEmails(emails);

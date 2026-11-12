@@ -7,7 +7,10 @@ export function toast(message: string): void {
 }
 
 export function ToastHost() {
-  const [state, setState] = useState<{ message: string; show: boolean }>({ message: "", show: false });
+  const [state, setState] = useState<{ message: string; show: boolean }>({
+    message: "",
+    show: false,
+  });
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
