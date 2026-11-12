@@ -67,7 +67,6 @@ export function SiteFooter() {
       <p>Built for stories that linger.</p>
       <div className="footer-links">
         <Link to="/cards">Quote studio</Link>
-        <Link to="/admin">Admin</Link>
       </div>
       <span className="footer-year">
         © <span data-year>{new Date().getFullYear()}</span> STORYHOUSE

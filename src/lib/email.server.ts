@@ -202,10 +202,15 @@ async function sendWithSupabase(
   code: string
 ): Promise<{ delivered: boolean }> {
   const { createClient } = await import("@supabase/supabase-js");
+  const supabaseUrl = process.env["SUPABASE_URL"];
+  const supabaseKey = process.env["SUPABASE_ANON_KEY"];
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required for this email provider.");
+  }
   
   const supabase = createClient(
-    process.env["SUPABASE_URL"]!,
-    process.env["SUPABASE_ANON_KEY"]!,
+    supabaseUrl,
+    supabaseKey,
     {
       db: { schema: "extensions" },
     }

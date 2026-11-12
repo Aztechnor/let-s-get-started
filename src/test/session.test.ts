@@ -4,7 +4,6 @@ import {
   getSession,
   clearSession,
   safeEqual,
-  getSessionSecret,
   signSessionPayload,
   verifySessionToken,
 } from "@/lib/session.server";
@@ -100,10 +99,10 @@ describe("session utility functions", () => {
       const cookies: Record<string, string> = {};
       cookieString.split(";").forEach((cookie) => {
         const [name, ...value] = cookie.trim().split("=");
-        cookies[name] = value.join("=");
+        if (name) cookies[name] = value.join("=");
       });
-      expect(cookies.name).toBe("value");
-      expect(cookies.name2).toBe("value2");
+      expect(cookies["name"]).toBe("value");
+      expect(cookies["name2"]).toBe("value2");
     });
 
     it("should handle URL-encoded cookie values", () => {
@@ -111,15 +110,15 @@ describe("session utility functions", () => {
       const cookies: Record<string, string> = {};
       cookieString.split(";").forEach((cookie) => {
         const [name, ...value] = cookie.trim().split("=");
-        cookies[name] = decodeURIComponent(value.join("="));
+        if (name) cookies[name] = decodeURIComponent(value.join("="));
       });
-      expect(cookies.name).toBe("hello world");
+      expect(cookies["name"]).toBe("hello world");
     });
   });
 });
 
 
-describe("session signing hardening", () => {
+describe("signed session tokens", () => {
   const originalSecret = process.env["SESSION_SECRET"];
 
   afterEach(() => {
@@ -127,41 +126,54 @@ describe("session signing hardening", () => {
     else process.env["SESSION_SECRET"] = originalSecret;
   });
 
-  it("rejects missing or weak session secrets", () => {
+  it("requires a configured secret of at least 32 bytes", async () => {
     delete process.env["SESSION_SECRET"];
-    expect(() => getSessionSecret()).toThrow("SESSION_SECRET");
-    process.env["SESSION_SECRET"] = "short";
-    expect(() => getSessionSecret()).toThrow("at least 32");
+    await expect(signSessionPayload({
+      email: "reader@example.com",
+      role: "reader",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    })).rejects.toThrow("SESSION_SECRET");
+
+    process.env["SESSION_SECRET"] = "too-short";
+    await expect(signSessionPayload({
+      email: "reader@example.com",
+      role: "reader",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    })).rejects.toThrow("at least 32");
   });
 
-  it("signs and verifies a valid session", async () => {
-    process.env["SESSION_SECRET"] = "storyhouse-test-secret-that-is-at-least-32-bytes";
-    const payload = {
-      email: "reader@example.com",
-      role: "reader" as const,
-      exp: Math.floor(Date.now() / 1000) + 60,
-    };
+  it("signs and verifies a valid reader session", async () => {
+    process.env["SESSION_SECRET"] = "test-session-secret-that-is-at-least-32-bytes";
+    const payload = { email: "reader@example.com", role: "reader" as const, exp: Math.floor(Date.now() / 1000) + 60 };
     const token = await signSessionPayload(payload);
     await expect(verifySessionToken(token)).resolves.toMatchObject(payload);
   });
 
-  it("rejects modified and expired sessions", async () => {
-    process.env["SESSION_SECRET"] = "storyhouse-test-secret-that-is-at-least-32-bytes";
-    const valid = await signSessionPayload({
+  it("rejects a modified session token", async () => {
+    process.env["SESSION_SECRET"] = "test-session-secret-that-is-at-least-32-bytes";
+    const token = await signSessionPayload({
       email: "reader@example.com",
       role: "reader",
       exp: Math.floor(Date.now() / 1000) + 60,
     });
-    const [body, signature] = valid.split(".");
+      email: "reader@example.com",
+      role: "reader",
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    const [body, signature] = token.split(".");
     const firstSignatureChar = signature?.[0] ?? "a";
     const tamperedSignature = (firstSignatureChar === "a" ? "b" : "a") + (signature?.slice(1) ?? "");
     await expect(verifySessionToken(`${body}.${tamperedSignature}`)).resolves.toBeNull();
+  });
 
-    const expired = await signSessionPayload({
+  it("rejects expired sessions", async () => {
+    process.env["SESSION_SECRET"] = "test-session-secret-that-is-at-least-32-bytes";
+    const token = await signSessionPayload({
       email: "reader@example.com",
       role: "reader",
       exp: Math.floor(Date.now() / 1000) - 1,
     });
-    await expect(verifySessionToken(expired)).resolves.toBeNull();
+    await expect(verifySessionToken(token)).resolves.toBeNull();
+  });
   });
 });
