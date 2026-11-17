@@ -54,14 +54,15 @@ async function hashRateLimitKey(scope: string, identity: string): Promise<string
     .join("");
 }
 
-function getClientAddress(): string {
+function getClientAddress(): string | null {
   const request = getRequest();
-  if (!request) return "unknown";
+  if (!request) return null;
   const platformAddress =
     request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-nf-client-connection-ip");
   const forwardedAddress = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return (platformAddress ?? forwardedAddress ?? "unknown").trim().slice(0, 128) || "unknown";
+  const address = (platformAddress ?? forwardedAddress ?? "").trim().slice(0, 128);
+  return address || null;
 }
 
 /**
@@ -193,7 +194,8 @@ export const requestCode = createServerFn({ method: "POST" })
 
     // Apply limits before checking the whitelist to avoid email enumeration and OTP flooding.
     await enforceAuthRateLimit("otp-request-email", email, 3);
-    await enforceAuthRateLimit("otp-request-ip", getClientAddress(), 20);
+    const clientAddress = getClientAddress();
+    if (clientAddress) await enforceAuthRateLimit("otp-request-ip", clientAddress, 20);
 
     const db = await getAdminDb();
     const { data: allowed } = await db
@@ -264,7 +266,8 @@ export const verifyCode = createServerFn({ method: "POST" })
     }
 
     await enforceAuthRateLimit("otp-verify-email", email, 10);
-    await enforceAuthRateLimit("otp-verify-ip", getClientAddress(), 30);
+    const clientAddress = getClientAddress();
+    if (clientAddress) await enforceAuthRateLimit("otp-verify-ip", clientAddress, 30);
 
     const db = await getAdminDb();
     const { data: allowed } = await db
@@ -317,7 +320,8 @@ export const adminLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const submittedEmail = emailNormalize(data.email);
     await enforceAuthRateLimit("admin-login-email", submittedEmail, 5);
-    await enforceAuthRateLimit("admin-login-ip", getClientAddress(), 20);
+    const clientAddress = getClientAddress();
+    if (clientAddress) await enforceAuthRateLimit("admin-login-ip", clientAddress, 20);
 
     const adminEmail = emailNormalize(process.env["ADMIN_EMAIL"] ?? "");
     const adminPassword = process.env["ADMIN_PASSWORD"] ?? "";
