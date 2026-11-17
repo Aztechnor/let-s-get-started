@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { isAuthorizedReaderSession } from "./reader-access.server";
 import { parseBulkInviteEmails, type BulkInviteResult } from "./bulk-invitations";
@@ -29,6 +30,66 @@ import {
 const CODE_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 45;
 const MAX_ATTEMPTS = 5;
+const AUTH_RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
+
+/**
+ * Derive opaque, keyed identifiers for the database rate-limit table.
+ * The raw email/IP is never stored in auth_rate_limits.
+ */
+async function hashRateLimitKey(scope: string, identity: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(getSessionSecret()),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const digest = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`storyhouse-rate-limit:${scope}:${identity}`),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function getClientAddress(): string | null {
+  const request = getRequest();
+  if (!request) return null;
+  const platformAddress =
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-nf-client-connection-ip");
+  const forwardedAddress = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const address = (platformAddress ?? forwardedAddress ?? "").trim().slice(0, 128);
+  return address || null;
+}
+
+/**
+ * Fail closed if the database-backed limiter is unavailable. This requires
+ * migration 0002_auth_and_reader_hardening.sql to be applied before rollout.
+ */
+async function enforceAuthRateLimit(
+  scope: string,
+  identity: string,
+  limit: number,
+): Promise<void> {
+  const db = await getAdminDb();
+  const keyHash = await hashRateLimitKey(scope, identity);
+  const { data, error } = await db.rpc("consume_auth_rate_limit", {
+    p_key_hash: keyHash,
+    p_limit: limit,
+    p_window_seconds: AUTH_RATE_LIMIT_WINDOW_SECONDS,
+  });
+
+  if (error) {
+    console.error("Authentication rate-limit check failed", error);
+    throw new Error("Sign-in is temporarily unavailable. Please try again later.");
+  }
+  if (data !== true) {
+    throw new Error("Too many attempts. Please wait 15 minutes before trying again.");
+  }
+}
 
 async function codeHash(email: string, code: string): Promise<string> {
   const secret = getSessionSecret();
@@ -131,6 +192,11 @@ export const requestCode = createServerFn({ method: "POST" })
     const email = emailNormalize(data.email);
     if (!validEmail(email)) throw new Error("Enter a valid email address.");
 
+    // Apply limits before checking the whitelist to avoid email enumeration and OTP flooding.
+    await enforceAuthRateLimit("otp-request-email", email, 3);
+    const clientAddress = getClientAddress();
+    if (clientAddress) await enforceAuthRateLimit("otp-request-ip", clientAddress, 20);
+
     const db = await getAdminDb();
     const { data: allowed } = await db
       .from("allowed_readers")
@@ -198,6 +264,11 @@ export const verifyCode = createServerFn({ method: "POST" })
     if (!validEmail(email) || !(code.length === 6 && /^\d{6}$/.test(code))) {
       throw new Error("Enter the email address and six-digit code.");
     }
+
+    await enforceAuthRateLimit("otp-verify-email", email, 10);
+    const clientAddress = getClientAddress();
+    if (clientAddress) await enforceAuthRateLimit("otp-verify-ip", clientAddress, 30);
+
     const db = await getAdminDb();
     const { data: allowed } = await db
       .from("allowed_readers")
@@ -247,6 +318,11 @@ export const adminLogin = createServerFn({ method: "POST" })
     z.object({ email: z.string().trim().email().max(254), password: z.string().min(1).max(1024) }).parse(input),
   )
   .handler(async ({ data }) => {
+    const submittedEmail = emailNormalize(data.email);
+    await enforceAuthRateLimit("admin-login-email", submittedEmail, 5);
+    const clientAddress = getClientAddress();
+    if (clientAddress) await enforceAuthRateLimit("admin-login-ip", clientAddress, 20);
+
     const adminEmail = emailNormalize(process.env["ADMIN_EMAIL"] ?? "");
     const adminPassword = process.env["ADMIN_PASSWORD"] ?? "";
     if (!adminEmail || !adminPassword) {
