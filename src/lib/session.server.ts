@@ -9,7 +9,7 @@ export interface SessionPayload {
   exp: number;
 }
 
-function getSecret(): string {
+export function getSessionSecret(): string {
   const secret = process.env["SESSION_SECRET"];
   if (!secret || new TextEncoder().encode(secret).length < 32) {
     throw new Error("SESSION_SECRET must be configured with at least 32 cryptographically random bytes.");
@@ -36,7 +36,7 @@ function base64UrlToBytes(value: string): Uint8Array {
 async function hmacKey(): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    encoder.encode(getSecret()),
+    encoder.encode(getSessionSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
