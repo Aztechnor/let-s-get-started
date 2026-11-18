@@ -1,549 +1,442 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { getLibrary } from "@/lib/storyhouse.functions";
 import { SiteHeader } from "@/components/site-chrome";
 import { toast, ToastHost } from "@/components/toast";
+
+type Book = Awaited<ReturnType<typeof getLibrary>>["books"][number];
 
 export const Route = createFileRoute("/cards")({
   head: () => ({
     meta: [
-      { title: "Quote studio — Storyhouse" },
+      { title: "Share the books — The Library of Alexandria" },
       {
         name: "description",
-        content: "Turn your favourite lines from the reading room into shareable quote cards.",
+        content: "Discover Under Blue Skies and SPOOK. Create and share an early-access book card.",
       },
-      { property: "og:title", content: "Quote studio — Storyhouse" },
+      { property: "og:title", content: "Share the books — The Library of Alexandria" },
       {
         property: "og:description",
-        content: "Turn your favourite lines from the reading room into shareable quote cards.",
+        content: "Two books. Worlds to get lost in. Discover the early-access reading room.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  loader: () => getLibrary(),
   component: CardsPage,
 });
 
-type TemplateId = "bluehour" | "wildflower" | "archive" | "redacted" | "moonlit" | "postcard";
-
-const QUOTES: { quote: string; source: string; book: "under" | "spook"; template: TemplateId }[] = [
-  {
-    quote: "To have loved and lost is better than to have never loved at all.",
-    source: "UNDER BLUE SKIES · EPIGRAPH",
-    book: "under",
-    template: "wildflower",
-  },
-  {
-    quote: "It's easy to love the idea of someone, but much harder to love the reality.",
-    source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU",
-    book: "under",
-    template: "bluehour",
-  },
-  {
-    quote: "Some wounds don’t heal. Some scars don’t fade.",
-    source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU",
-    book: "under",
-    template: "moonlit",
-  },
-  {
-    quote: "For every dawn follows darkest day.",
-    source: "UNDER BLUE SKIES · THE OPENING POEM",
-    book: "under",
-    template: "postcard",
-  },
-  {
-    quote: "Promise me this, that you’ll never be afraid to be human.",
-    source: "UNDER BLUE SKIES · I WILL NEVER HIT YOU",
-    book: "under",
-    template: "wildflower",
-  },
-  {
-    quote: "Land that sits too quietly.",
-    source: "SPOOK · THE LAND",
-    book: "spook",
-    template: "archive",
-  },
-  {
-    quote: "The Great North Road does not forget. It swallows.",
-    source: "SPOOK · THE HITCHHIKER",
-    book: "spook",
-    template: "redacted",
-  },
-  {
-    quote: "The land remembers. It sends its teeth.",
-    source: "SPOOK · NANDI BEAR",
-    book: "spook",
-    template: "moonlit",
-  },
-  {
-    quote: "You cannot build healing on a place that has not yet finished its grieving.",
-    source: "SPOOK · THE LAND",
-    book: "spook",
-    template: "archive",
-  },
-  {
-    quote: "Every story, a different document.",
-    source: "SPOOK · COVER LINE",
-    book: "spook",
-    template: "redacted",
-  },
-];
-
-const TEMPLATES: { id: TemplateId; name: string; desc: string }[] = [
-  { id: "bluehour", name: "Blue Hour", desc: "Soft, open, and hopeful." },
-  { id: "wildflower", name: "Wildflower", desc: "Warm paper, handwritten feeling." },
-  { id: "archive", name: "Archive File", desc: "Dark, precise, and recovered." },
-  { id: "redacted", name: "Redacted", desc: "A rough-edged case file." },
-  { id: "moonlit", name: "Moonlit", desc: "Night sky and quiet mystery." },
-  { id: "postcard", name: "Postcard", desc: "A little note from somewhere." },
-];
-
-// Card artwork colours are part of each printed design (canvas pixels), not app theme tokens.
-const PALETTES: Record<
-  TemplateId,
-  { bg1: string; bg2: string; ink: string; line: string; accent: string }
-> = {
-  bluehour: { bg1: "#eef3ef", bg2: "#c4dce0", ink: "#2a4a5b", line: "#6b99a8", accent: "#b78768" },
-  wildflower: {
-    bg1: "#f7f0df",
-    bg2: "#eadfc6",
-    ink: "#355545",
-    line: "#91a68f",
-    accent: "#719879",
-  },
-  archive: { bg1: "#252824", bg2: "#171a18", ink: "#dfc589", line: "#947d4d", accent: "#a98c52" },
-  redacted: { bg1: "#2a2825", bg2: "#161716", ink: "#efe4d0", line: "#aa6859", accent: "#c45e4f" },
-  moonlit: { bg1: "#41496c", bg2: "#191e34", ink: "#f2e9d8", line: "#9aa3ca", accent: "#d4bf8c" },
-  postcard: { bg1: "#f3f5ef", bg2: "#bdd8e0", ink: "#284b60", line: "#719bab", accent: "#d08c6a" },
-};
-
-interface CardOptions {
-  template: TemplateId;
-  quote: string;
-  attribution: string;
-  signature: string;
-  ornament: boolean;
-  number: number;
+function bookPalette(book: Book) {
+  const isSpook = book.title.toLowerCase().includes("spook");
+  return isSpook
+    ? {
+        background: "linear-gradient(135deg, #242724 0%, #49483d 52%, #755f49 100%)",
+        start: "#252925",
+        end: "#766048",
+        glow: "#b28b62",
+        ink: "#f3eadb",
+        muted: "#d1c4b1",
+        accent: "#d0a67a",
+      }
+    : {
+        background: "linear-gradient(135deg, #1d3442 0%, #365e6d 54%, #789496 100%)",
+        start: "#1d3442",
+        end: "#789496",
+        glow: "#83bac3",
+        ink: "#f3f1e7",
+        muted: "#d4e0dc",
+        accent: "#d6c5a2",
+      };
 }
 
-function drawStar(
+function wrapCanvasText(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  outer: number,
-  inner: number,
-  points = 8,
-) {
-  ctx.beginPath();
-  for (let i = 0; i < points * 2; i++) {
-    const angle = -Math.PI / 2 + (i * Math.PI) / points;
-    const r = i % 2 ? inner : outer;
-    const x = cx + Math.cos(angle) * r;
-    const y = cy + Math.sin(angle) * r;
-    if (!i) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
-}
-
-function wrappedLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  const words = text.split(/\s+/);
+  text: string,
+  maxWidth: number,
+): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let line = "";
   for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxWidth && line) {
+    const next = line ? line + " " + word : word;
+    if (line && ctx.measureText(next).width > maxWidth) {
       lines.push(line);
       line = word;
-    } else line = test;
+    } else {
+      line = next;
+    }
   }
   if (line) lines.push(line);
   return lines;
 }
 
-function drawCard(canvas: HTMLCanvasElement, o: CardOptions) {
+function loadCover(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("The book cover could not be loaded."));
+    image.src = src;
+    if (image.complete && image.naturalWidth > 0) resolve(image);
+  });
+}
+
+async function paintBookCard(canvas: HTMLCanvasElement, book: Book) {
   canvas.width = 1080;
   canvas.height = 1350;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const theme = o.template;
-  const p = PALETTES[theme];
-  const doc = theme === "archive" || theme === "redacted";
-  const sans = doc ? "monospace" : "Arial";
+  if (!ctx) throw new Error("This browser cannot create a share image.");
 
-  const grad = ctx.createLinearGradient(0, 0, 1080, 1350);
-  grad.addColorStop(0, p.bg1);
-  grad.addColorStop(1, p.bg2);
-  ctx.fillStyle = grad;
+  const palette = bookPalette(book);
+  const gradient = ctx.createLinearGradient(0, 0, 1080, 1350);
+  gradient.addColorStop(0, palette.start);
+  gradient.addColorStop(1, palette.end);
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 1080, 1350);
 
-  if (theme === "bluehour" || theme === "postcard") {
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = "#fff";
-    for (const [x, y, r] of [
-      [150, 220, 80],
-      [820, 280, 115],
-      [920, 1020, 60],
-    ] as const) {
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = p.accent;
+  const glow = ctx.createRadialGradient(880, 370, 40, 800, 530, 700);
+  glow.addColorStop(0, palette.glow + "66");
+  glow.addColorStop(1, palette.glow + "00");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, 1080, 1100);
+
+  ctx.strokeStyle = "rgba(255,255,255,.16)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(42, 42, 996, 1266);
+
+  ctx.fillStyle = palette.muted;
+  ctx.font = "600 19px Arial, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("THE LIBRARY OF ALEXANDRIA", 92, 112);
+
+  ctx.textAlign = "right";
+  ctx.font = "600 16px Arial, sans-serif";
+  ctx.fillText("EARLY ACCESS", 988, 112);
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = palette.accent;
+  ctx.fillRect(92, 180, 96, 4);
+
+  ctx.fillStyle = palette.ink;
+  ctx.font = "500 74px Georgia, serif";
+  const titleLines = wrapCanvasText(ctx, book.title, 405).slice(0, 3);
+  let titleY = 315;
+  for (const line of titleLines) {
+    ctx.fillText(line, 92, titleY, 420);
+    titleY += 88;
+  }
+
+  ctx.fillStyle = palette.muted;
+  ctx.font = "600 20px Arial, sans-serif";
+  ctx.fillText(("BY " + book.author).toUpperCase(), 94, titleY + 16, 420);
+
+  ctx.fillStyle = "rgba(255,255,255,.82)";
+  ctx.font = "29px Georgia, serif";
+  const descriptionLines = wrapCanvasText(ctx, book.description, 410).slice(0, 5);
+  let descriptionY = titleY + 104;
+  for (const line of descriptionLines) {
+    ctx.fillText(line, 94, descriptionY, 420);
+    descriptionY += 43;
+  }
+
+  try {
+    const cover = await loadCover(book.cover);
+    const coverX = 565;
+    const coverY = 225;
+    const coverW = 405;
+    const coverH = 570;
+    const scale = Math.max(coverW / cover.naturalWidth, coverH / cover.naturalHeight);
+    const drawW = cover.naturalWidth * scale;
+    const drawH = cover.naturalHeight * scale;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,.48)";
+    ctx.shadowBlur = 42;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 28;
+    ctx.fillStyle = "#101512";
+    ctx.fillRect(coverX - 8, coverY - 8, coverW + 16, coverH + 16);
+    ctx.restore();
+
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(855, 200, 31, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    if (theme === "postcard") {
-      // Airmail stripe border and stamp box.
-      const stripes = ["#c4574a", "#f3f5ef", "#3f6d8a", "#f3f5ef"];
-      for (let x = 40, i = 0; x < 1040; x += 36, i++) {
-        ctx.fillStyle = stripes[i % 4] ?? "#fff";
-        ctx.fillRect(x, 30, 36, 14);
-        ctx.fillRect(x, 1306, 36, 14);
+    ctx.rect(coverX, coverY, coverW, coverH);
+    ctx.clip();
+    ctx.drawImage(
+      cover,
+      coverX + (coverW - drawW) / 2,
+      coverY + (coverH - drawH) / 2,
+      drawW,
+      drawH,
+    );
+    ctx.restore();
+  } catch {
+    ctx.fillStyle = "rgba(255,255,255,.08)";
+    ctx.fillRect(565, 225, 405, 570);
+    ctx.fillStyle = palette.ink;
+    ctx.font = "48px Georgia, serif";
+    ctx.fillText(book.title, 600, 470, 330);
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,.12)";
+  ctx.fillRect(92, 930, 896, 1);
+  ctx.fillStyle = palette.ink;
+  ctx.font = "italic 36px Georgia, serif";
+  ctx.fillText("A story is waiting for you.", 92, 1010);
+
+  ctx.fillStyle = palette.muted;
+  ctx.font = "600 17px Arial, sans-serif";
+  ctx.fillText("PRIVATE READING ROOM  ·  INVITATION ACCESS", 94, 1067);
+
+  ctx.fillStyle = palette.accent;
+  ctx.font = "600 20px Arial, sans-serif";
+  ctx.fillText("DISCOVER THE COLLECTION", 94, 1190);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = palette.muted;
+  ctx.font = "600 15px Arial, sans-serif";
+  ctx.fillText("STORIES THAT STAY", 986, 1190);
+  ctx.textAlign = "left";
+}
+
+async function makeBookCardImage(book: Book): Promise<Blob | null> {
+  const canvas = document.createElement("canvas");
+  await paintBookCard(canvas, book);
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+function safeFileName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "book";
+}
+
+function shareUrl(book: Book) {
+  return (
+    window.location.origin +
+    "/read?book=" +
+    encodeURIComponent(book.id) +
+    "&chapter=0"
+  );
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+}
+
+function BookShareCard({ book }: { book: Book }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const palette = bookPalette(book);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    void paintBookCard(canvas, book).catch(() => undefined);
+  }, [book]);
+
+  const downloadCard = async () => {
+    try {
+      const blob = await makeBookCardImage(book);
+      if (!blob) {
+        toast("The book card could not be created in this browser.");
+        return;
       }
-      ctx.strokeStyle = p.line;
-      ctx.setLineDash([6, 6]);
-      ctx.strokeRect(860, 1090, 108, 128);
-      ctx.setLineDash([]);
+      downloadBlob(blob, safeFileName(book.title) + "-library-card.png");
+      toast("Your 1080 × 1350 book card is ready.");
+    } catch {
+      toast("The book card could not be created. Please try again.");
     }
-  } else if (theme === "wildflower") {
-    ctx.strokeStyle = "#83a389";
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.45;
-    for (let i = 0; i < 7; i++) {
-      const x = 112 + i * 145;
-      ctx.beginPath();
-      ctx.moveTo(x, 1030);
-      ctx.quadraticCurveTo(x + 12, 1110, x - 3, 1205);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(x - 15, 1100, 16, 34, -0.6, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(x + 18, 1150, 15, 28, 0.5, 0, Math.PI * 2);
-      ctx.stroke();
+  };
+
+  const copyLink = async () => {
+    const url = shareUrl(book);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("Reading link copied.");
+    } catch {
+      toast("Copying is blocked in this browser. Use the share button instead.");
     }
-    ctx.globalAlpha = 1;
-  } else if (theme === "moonlit") {
-    ctx.fillStyle = "rgba(245,239,215,.8)";
-    for (let i = 0; i < 65; i++) {
-      const x = ((i * 197) % 1020) + 30;
-      const y = ((i * 317) % 900) + 40;
-      drawStar(ctx, x, y, i % 3 === 0 ? 4 : 2, i % 3 === 0 ? 1.4 : 1, 4);
+  };
+
+  const shareCard = async () => {
+    try {
+      const blob = await makeBookCardImage(book);
+      if (!blob) {
+        toast("The book card could not be created.");
+        return;
+      }
+      const file = new File([blob], safeFileName(book.title) + "-library-card.png", {
+        type: "image/png",
+      });
+      const url = shareUrl(book);
+      const title = book.title + " · The Library of Alexandria";
+      const message = "Discover " + book.title + " by " + book.author + " in the early-access reading room.";
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title, text: message, url });
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title, text: message, url });
+        return;
+      }
+
+      downloadBlob(blob, safeFileName(book.title) + "-library-card.png");
+      await navigator.clipboard.writeText(url);
+      toast("Card downloaded and reading link copied. Attach the image when posting.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast("The share sheet could not be opened. Download the card and share it manually.");
     }
-    ctx.fillStyle = "#f3e6bd";
-    ctx.beginPath();
-    ctx.arc(830, 210, 65, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#343a5b";
-    ctx.beginPath();
-    ctx.arc(860, 185, 63, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (doc) {
-    ctx.strokeStyle = p.line;
-    ctx.lineWidth = 2;
-    ctx.setLineDash(theme === "redacted" ? [7, 9] : []);
-    ctx.strokeRect(62, 62, 956, 1226);
-    ctx.setLineDash([]);
-    if (theme === "redacted") {
-      ctx.fillStyle = "#a64238";
-      ctx.globalAlpha = 0.78;
-      ctx.fillRect(120, 210, 235, 17);
-      ctx.fillRect(710, 1025, 245, 14);
-      ctx.globalAlpha = 1;
-    }
-  }
+  };
 
-  ctx.strokeStyle = p.line;
-  ctx.lineWidth = theme === "redacted" ? 2 : 1.4;
-  ctx.globalAlpha = 0.8;
-  ctx.strokeRect(63, 63, 954, 1224);
-  ctx.globalAlpha = 1;
-  if (theme === "wildflower") {
-    ctx.lineWidth = 1;
-    ctx.strokeRect(82, 82, 916, 1186);
-  }
+  const openSocial = (network: "whatsapp" | "facebook" | "x") => {
+    const url = shareUrl(book);
+    const text =
+      "Discover " +
+      book.title +
+      " by " +
+      book.author +
+      " — early access at The Library of Alexandria.";
+    const destinations = {
+      whatsapp: "https://wa.me/?text=" + encodeURIComponent(text + " " + url),
+      facebook: "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url),
+      x:
+        "https://twitter.com/intent/tweet?text=" +
+        encodeURIComponent(text) +
+        "&url=" +
+        encodeURIComponent(url),
+    };
+    window.open(destinations[network], "_blank", "noopener,noreferrer");
+  };
 
-  ctx.fillStyle = p.ink;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = `700 18px ${sans}`;
-  ctx.fillText(
-    doc
-      ? "RECOVERED DOCUMENT / STORYHOUSE"
-      : theme === "postcard"
-        ? "GREETINGS FROM STORYHOUSE"
-        : "A LINE TO KEEP",
-    112,
-    135,
-  );
-  ctx.textAlign = "right";
-  ctx.font = `600 16px ${sans}`;
-  ctx.fillText(`${String(o.number).padStart(2, "0")} / ✳`, 968, 135);
-
-  if (o.ornament) {
-    ctx.fillStyle = p.accent;
-    if (theme === "moonlit") drawStar(ctx, 540, 310, 34, 14, 8);
-    else drawStar(ctx, 540, 310, 26, 11, 8);
-  }
-
-  const quote = `“${o.quote || "Write the line you want to keep…"}”`;
-  const family = doc ? "monospace" : "Georgia, serif";
-  const italic = theme === "wildflower" || theme === "postcard" ? "italic " : "";
-  let fontSize = doc ? 55 : 67;
-  let lines: string[] = [];
-  do {
-    ctx.font = `${italic}${fontSize}px ${family}`;
-    lines = wrappedLines(ctx, quote, 805);
-    if (lines.length > 6) fontSize -= 3;
-    else break;
-  } while (fontSize > 37);
-  const lineHeight = fontSize * (doc ? 1.4 : 1.27);
-  let y = 670 - (lines.length * lineHeight) / 2 + fontSize * 0.75;
-  ctx.textAlign = "center";
-  ctx.fillStyle = p.ink;
-  for (const line of lines) {
-    ctx.fillText(line, 540, y, 850);
-    y += lineHeight;
-  }
-
-  ctx.strokeStyle = p.ink;
-  ctx.globalAlpha = 0.5;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(420, 935);
-  ctx.lineTo(660, 935);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  ctx.font = `700 19px ${sans}`;
-  const attribution = (o.attribution.trim() || "STORYHOUSE").toUpperCase();
-  ctx.fillText(
-    attribution.length > 54 ? attribution.slice(0, 51) + "…" : attribution,
-    540,
-    980,
-    820,
-  );
-  if (o.signature.trim()) {
-    ctx.font = "italic 24px Georgia, serif";
-    ctx.globalAlpha = 0.8;
-    ctx.fillText(o.signature.trim().slice(0, 48), 540, 1030, 790);
-    ctx.globalAlpha = 1;
-  }
-  ctx.textAlign = "left";
-  ctx.font = `700 15px ${sans}`;
-  ctx.fillText("STORYHOUSE", 112, 1210);
-  ctx.textAlign = "right";
-  ctx.font = `600 13px ${sans}`;
-  ctx.fillText("STORIES THAT STAY", 968, 1210);
-}
-
-function safeFileName(text: string) {
   return (
-    text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 48) || "storyhouse-quote"
-  );
-}
+    <article className="overflow-hidden rounded-[2rem] border border-[#ded5c5] bg-[#fbf8f1] shadow-[0_18px_50px_rgba(56,48,36,0.09)]">
+      <div className="p-4 sm:p-6" style={{ background: palette.background }}>
+        <canvas
+          ref={canvasRef}
+          className="block aspect-[4/5] w-full rounded-[1.25rem] border border-white/15 shadow-[0_18px_42px_rgba(0,0,0,0.24)]"
+          aria-label={"Shareable book card for " + book.title}
+        />
+      </div>
 
-function TemplateSwatch({ id }: { id: TemplateId }) {
-  const p = PALETTES[id];
-  return (
-    <span
-      aria-hidden
-      className="block h-10 w-10 shrink-0 rounded-md border"
-      style={{
-        background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`,
-        boxShadow: `inset 0 0 0 3px ${p.accent}55`,
-      }}
-    />
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#8a806f]">
+              Share this title
+            </p>
+            <h2 className="mt-1 font-serif text-2xl font-normal text-[#2a312d]">
+              {book.title}
+            </h2>
+            <p className="mt-1 text-xs text-[#7a7b72]">By {book.author}</p>
+          </div>
+          <span className="rounded-full border border-[#cfc5b4] bg-[#f3eee4] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.15em] text-[#526a61]">
+            Early access
+          </span>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => void shareCard()}
+            className="col-span-2 inline-flex items-center justify-center gap-2 rounded-full bg-[#2f443b] px-4 py-3 text-xs font-semibold text-[#f8f2e7] transition hover:bg-[#435e50] sm:col-span-1"
+          >
+            Share card <span aria-hidden="true">↗</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void downloadCard()}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d8cebd] px-4 py-3 text-xs font-semibold text-[#39433c] transition hover:bg-[#f1ebdf]"
+          >
+            Download image <span aria-hidden="true">↓</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void copyLink()}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d8cebd] px-4 py-3 text-xs font-semibold text-[#39433c] transition hover:bg-[#f1ebdf]"
+          >
+            Copy reading link <span aria-hidden="true">⧉</span>
+          </button>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#e7dfd2] pt-4">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.17em] text-[#918675]">
+            Share to
+          </span>
+          <button
+            type="button"
+            onClick={() => openSocial("whatsapp")}
+            className="text-xs font-medium text-[#526a61] transition hover:text-[#26342d]"
+          >
+            WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={() => openSocial("facebook")}
+            className="text-xs font-medium text-[#526a61] transition hover:text-[#26342d]"
+          >
+            Facebook
+          </button>
+          <button
+            type="button"
+            onClick={() => openSocial("x")}
+            className="text-xs font-medium text-[#526a61] transition hover:text-[#26342d]"
+          >
+            X
+          </button>
+          <span className="ml-auto text-[10px] text-[#979083]">
+            Instagram · use your device share sheet
+          </span>
+        </div>
+      </div>
+    </article>
   );
 }
 
 function CardsPage() {
-  const [selected, setSelected] = useState(1);
-  const [template, setTemplate] = useState<TemplateId>("bluehour");
-  const [custom, setCustom] = useState("");
-  const [attribution, setAttribution] = useState(QUOTES[1]?.source ?? "");
-  const [signature, setSignature] = useState("");
-  const [ornament, setOrnament] = useState(true);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const options: CardOptions = {
-    template,
-    quote: (custom.trim() || QUOTES[selected]?.quote || "").trim(),
-    attribution,
-    signature,
-    ornament,
-    number: selected + 1,
-  };
-
-  useEffect(() => {
-    if (canvasRef.current) drawCard(canvasRef.current, options);
-  });
-
-  const makeBlob = async () => {
-    if (document.fonts?.ready) await document.fonts.ready;
-    const canvas = document.createElement("canvas");
-    drawCard(canvas, options);
-    return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-  };
-
-  const download = async () => {
-    const blob = await makeBlob();
-    if (!blob) return toast("The card image could not be created in this browser.");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${safeFileName(attribution)}-${template}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-    toast("Your 1080 × 1350 card is ready.");
-  };
-
-  const share = async () => {
-    const blob = await makeBlob();
-    if (!blob) return toast("The card image could not be created.");
-    const file = new File([blob], `${safeFileName(attribution)}.png`, { type: "image/png" });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: "A line to keep · Storyhouse",
-          text: options.quote,
-        });
-      } catch {
-        /* share sheet dismissed */
-      }
-    } else {
-      await download();
-    }
-  };
-
-  const field =
-    "w-full rounded-lg border border-input bg-card px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
+  const { books } = Route.useLoaderData();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-[#f5f1e8] text-[#242924]">
       <ToastHost />
       <SiteHeader active="cards" />
-      <main className="mx-auto grid w-full max-w-6xl gap-10 px-6 pb-24 pt-12 lg:grid-cols-[1fr_minmax(0,420px)]">
-        <section className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-semibold">Quote studio</h1>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Pick a line, choose a design, and download a card worth keeping.
-            </p>
-          </div>
 
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Design
-            </p>
-            <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  role="radio"
-                  aria-checked={template === t.id}
-                  onClick={() => setTemplate(t.id)}
-                  className={
-                    "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors " +
-                    (template === t.id ? "border-primary ring-2 ring-primary" : "hover:bg-accent")
-                  }
-                >
-                  <TemplateSwatch id={t.id} />
-                  <span>
-                    <b className="text-sm">{t.name}</b>
-                    <br />
-                    <small className="text-muted-foreground">{t.desc}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Choose a line
-            </span>
-            <select
-              value={selected}
-              onChange={(e) => {
-                const i = Number(e.target.value);
-                setSelected(i);
-                setCustom("");
-                setAttribution(QUOTES[i]?.source ?? "");
-                setTemplate(QUOTES[i]?.template ?? "bluehour");
-              }}
-              className={field}
-            >
-              {QUOTES.map((q, i) => (
-                <option key={i} value={i}>
-                  {String(i + 1).padStart(2, "0")} ·{" "}
-                  {q.quote.length > 65 ? q.quote.slice(0, 62) + "…" : q.quote} —{" "}
-                  {q.book === "spook" ? "SPOOK" : "UNDER BLUE SKIES"}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <textarea
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            rows={3}
-            placeholder="…or write your own quote"
-            className={field}
-          />
-          <input
-            value={attribution}
-            onChange={(e) => setAttribution(e.target.value)}
-            placeholder="Attribution"
-            className={field}
-          />
-          <input
-            value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            placeholder="Signature (optional)"
-            className={field}
-          />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={ornament}
-              onChange={(e) => setOrnament(e.target.checked)}
-            />
-            Show star ornament
-          </label>
-
-          <div className="flex gap-3">
-            <button
-              onClick={download}
-              className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
-            >
-              Download PNG ↓
-            </button>
-            <button onClick={share} className="rounded-lg border px-5 py-2 text-sm">
-              Share
-            </button>
-          </div>
-        </section>
-
-        <section className="lg:sticky lg:top-8 lg:self-start">
-          <canvas
-            ref={canvasRef}
-            className="aspect-[4/5] w-full rounded-xl border shadow-sm"
-            aria-label="Quote card preview"
-          />
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            {TEMPLATES.find((t) => t.id === template)?.name} —{" "}
-            {TEMPLATES.find((t) => t.id === template)?.desc}
+      <main className="mx-auto max-w-7xl px-6 pb-24 pt-12 sm:px-10 lg:pt-16">
+        <div className="mx-auto mb-12 max-w-3xl text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#8b806f]">
+            Pass a story along
           </p>
-        </section>
+          <h1 className="mt-4 font-serif text-4xl font-normal leading-tight tracking-tight text-[#28302c] sm:text-5xl">
+            Good stories deserve to travel.
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#77796f]">
+            Each book has its own share card. Send the image to a friend, post
+            it to your socials, or share a direct reading link with someone
+            who has early access.
+          </p>
+        </div>
+
+        <div className="grid items-start gap-8 lg:grid-cols-2">
+          {books.map((book) => (
+            <BookShareCard key={book.id} book={book} />
+          ))}
+        </div>
+
+        <div className="mx-auto mt-14 max-w-2xl border-t border-[#ded5c5] pt-8 text-center">
+          <p className="font-serif text-2xl text-[#39443d]">
+            Two books. One place to begin.
+          </p>
+          <p className="mt-2 text-xs leading-6 text-[#858174]">
+            Reading access is invitation-only. Sharing a card does not share
+            the book file or unlock a reader account.
+          </p>
+        </div>
       </main>
     </div>
   );

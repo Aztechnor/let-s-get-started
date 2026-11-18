@@ -7,7 +7,7 @@ function Brand({ small }: { small?: boolean }) {
     <Link
       to="/"
       className={"brand" + (small ? " brand-small" : "")}
-      aria-label="Library of Alexandria — Storyhouse home"
+      aria-label="Library of Alexandria — home"
     >
       <img
         className="brand-logo"
@@ -30,30 +30,30 @@ export function SiteHeader({
       <Brand />
       {active === "read" ? (
         <nav className="main-nav" aria-label="Main navigation">
-          <a href="/#library">The library</a>
-          <Link to="/cards">Quote studio</Link>
+          <a href="/#collection">The collection</a>
+          <Link to="/cards">Share the books</Link>
         </nav>
       ) : active === "admin" ? (
         <nav className="main-nav" aria-label="Main navigation">
-          <a href="/">Public site</a>
-          <Link to="/cards">Quote studio</Link>
+          <a href="/">Public library</a>
+          <Link to="/cards">Share the books</Link>
         </nav>
       ) : (
         <nav className="main-nav" aria-label="Main navigation">
-          <a href="/#library" className={active === "library" ? "active" : undefined}>
-            The library
+          <a href="/#collection" className={active === "library" ? "active" : undefined}>
+            The collection
           </a>
           <Link to="/cards" className={active === "cards" ? "active" : undefined}>
-            Quote studio
+            Share the books
           </Link>
-          <Link to="/read">Reader access</Link>
+          <Link to="/read" search={{ book: undefined, chapter: 0 }}>Reader access</Link>
         </nav>
       )}
       {right ?? (
-        <Link to="/read" className="nav-pill">
+        <Link to="/read" search={{ book: undefined, chapter: 0 }} className="nav-pill">
           {active === "cards" ? (
             <>
-              Back to reading <span aria-hidden="true">↗</span>
+              Back to the library <span aria-hidden="true">↗</span>
             </>
           ) : (
             <>
@@ -70,12 +70,13 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <Brand small />
-      <p>Built for stories that linger.</p>
+      <p>A quieter place for stories that stay.</p>
       <div className="footer-links">
-        <Link to="/cards">Quote studio</Link>
+        <Link to="/cards">Share the books</Link>
+        <Link to="/read" search={{ book: undefined, chapter: 0 }}>Reader access</Link>
       </div>
       <span className="footer-year">
-        © <span data-year>{new Date().getFullYear()}</span> STORYHOUSE
+        © <span data-year>{new Date().getFullYear()}</span> THE LIBRARY OF ALEXANDRIA
       </span>
     </footer>
   );
