@@ -51,8 +51,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/books/$bookId': typeof BooksBookIdRoute
-  '/books/$bookId': typeof BooksBookIdRoute
-  '/books/$bookId': typeof BooksBookIdRoute
   '/cards': typeof CardsRoute
   '/read': typeof ReadRoute
   '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
@@ -60,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/books/$bookId': typeof BooksBookIdRoute
   '/cards': typeof CardsRoute
   '/read': typeof ReadRoute
   '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
@@ -68,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/books/$bookId': typeof BooksBookIdRoute
   '/cards': typeof CardsRoute
   '/read': typeof ReadRoute
   '/api/public/read/pdf': typeof ApiPublicReadPdfRoute
