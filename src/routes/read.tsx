@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/read")({
+  validateSearch: (search: Record<string, unknown>) => {
+    const rawChapter = typeof search.chapter === "number" ? search.chapter : Number(search.chapter);
+    return {
+      book: typeof search.book === "string" && search.book.length <= 120 ? search.book : undefined,
+      chapter: Number.isSafeInteger(rawChapter) && rawChapter >= 0 && rawChapter <= 500 ? rawChapter : 0,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Reader access — Storyhouse" },
@@ -97,10 +104,11 @@ const lineHeightValues: Record<ReaderPreferences["lineSpacing"], number> = {
 };
 
 function ReadPage() {
+  const routeSearch = Route.useSearch();
   const [me, setMe] = useState<Awaited<ReturnType<typeof getMe>> | null>(null);
   const [books, setBooks] = useState<Books>([]);
-  const [bookId, setBookId] = useState<string | null>(null);
-  const [chapterIndex, setChapterIndex] = useState(0);
+  const [bookId, setBookId] = useState<string | null>(routeSearch.book ?? null);
+  const [chapterIndex, setChapterIndex] = useState(routeSearch.chapter ?? 0);
   const [story, setStory] = useState<Story | null>(null);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
