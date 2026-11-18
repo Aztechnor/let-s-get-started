@@ -80,6 +80,7 @@ function HomePage() {
                 </a>
                 <Link
                   to="/read"
+                  search={{ book: undefined, chapter: 0 }}
                   className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-sm font-medium text-[#f4eee2] transition hover:border-white/60 hover:bg-white/10"
                 >
                   Enter the reading room <span className="ml-3" aria-hidden="true">↗</span>
@@ -278,6 +279,7 @@ function HomePage() {
           </h2>
           <Link
             to="/read"
+            search={{ book: undefined, chapter: 0 }}
             className="mt-8 inline-flex items-center justify-center rounded-full bg-[#2d4039] px-7 py-3.5 text-sm font-semibold text-[#f7f1e5] transition hover:-translate-y-0.5 hover:bg-[#405c50]"
           >
             Enter the reading room <span className="ml-3" aria-hidden="true">↗</span>
