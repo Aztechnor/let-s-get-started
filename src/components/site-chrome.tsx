@@ -46,11 +46,11 @@ export function SiteHeader({
           <Link to="/cards" className={active === "cards" ? "active" : undefined}>
             Share the books
           </Link>
-          <Link to="/read">Reader access</Link>
+          <Link to="/read" search={{ book: undefined, chapter: 0 }}>Reader access</Link>
         </nav>
       )}
       {right ?? (
-        <Link to="/read" className="nav-pill">
+        <Link to="/read" search={{ book: undefined, chapter: 0 }} className="nav-pill">
           {active === "cards" ? (
             <>
               Back to the library <span aria-hidden="true">↗</span>
@@ -73,7 +73,7 @@ export function SiteFooter() {
       <p>A quieter place for stories that stay.</p>
       <div className="footer-links">
         <Link to="/cards">Share the books</Link>
-        <Link to="/read">Reader access</Link>
+        <Link to="/read" search={{ book: undefined, chapter: 0 }}>Reader access</Link>
       </div>
       <span className="footer-year">
         © <span data-year>{new Date().getFullYear()}</span> THE LIBRARY OF ALEXANDRIA
