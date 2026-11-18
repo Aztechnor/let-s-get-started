@@ -210,12 +210,7 @@ function safeFileName(value: string) {
 }
 
 function shareUrl(book: Book) {
-  return (
-    window.location.origin +
-    "/read?book=" +
-    encodeURIComponent(book.id) +
-    "&chapter=0"
-  );
+  return window.location.origin + "/books/" + encodeURIComponent(book.id);
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
