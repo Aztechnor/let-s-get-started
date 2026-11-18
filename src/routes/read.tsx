@@ -2,10 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/read")({
   validateSearch: (search: Record<string, unknown>) => {
-    const rawChapter = typeof search.chapter === "number" ? search.chapter : Number(search.chapter);
+    const rawChapter = search["chapter"];
+    const parsedChapter = typeof rawChapter === "number" ? rawChapter : Number(rawChapter);
+    const book = search["book"];
     return {
-      book: typeof search.book === "string" && search.book.length <= 120 ? search.book : undefined,
-      chapter: Number.isSafeInteger(rawChapter) && rawChapter >= 0 && rawChapter <= 500 ? rawChapter : 0,
+      book: typeof book === "string" && book.length <= 120 ? book : undefined,
+      chapter:
+        Number.isSafeInteger(parsedChapter) && parsedChapter >= 0 && parsedChapter <= 500
+          ? parsedChapter
+          : 0,
     };
   },
   head: () => ({
