@@ -225,11 +225,11 @@ function HomePage() {
                         </p>
                         <div className="mt-7 flex flex-wrap gap-2">
                           <Link
-                            to="/read"
-                            search={{ book: book.id, chapter: 0 }}
+                            to="/books/$bookId"
+                            params={{ bookId: book.id }}
                             className="inline-flex items-center justify-center rounded-full bg-[#f0e6d3] px-5 py-2.5 text-xs font-semibold text-[#2b3430] transition hover:bg-white"
                           >
-                            Read with access <span className="ml-2" aria-hidden="true">↗</span>
+                            Explore this book <span className="ml-2" aria-hidden="true">↗</span>
                           </Link>
                           <Link
                             to="/cards"
