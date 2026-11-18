@@ -168,6 +168,45 @@ export const getLibrary = createServerFn({ method: "GET" }).handler(async (): Pr
   return { books: getLibraryData() };
 });
 
+export interface PublicBookPageData {
+  book: BookSummary | null;
+  canonicalUrl: string | null;
+  coverUrl: string | null;
+}
+
+/**
+ * Public book metadata only. The full manuscript remains behind requireReader()
+ * in getStoryChapter and the authenticated PDF endpoint.
+ */
+export const getPublicBookPage = createServerFn({ method: "GET" })
+  .inputValidator((input: { bookId: string }) => input)
+  .handler(async ({ data }): Promise<PublicBookPageData> => {
+    const bookId = typeof data.bookId === "string" ? data.bookId.trim().slice(0, 120) : "";
+    const book = getLibraryData().find((entry) => entry.id === bookId) ?? null;
+    if (!book) {
+      return { book: null, canonicalUrl: null, coverUrl: null };
+    }
+
+    const request = getRequest();
+    const configuredOrigin = process.env["PUBLIC_SITE_URL"]?.trim();
+    let publicOrigin: string;
+    try {
+      const originUrl = new URL(configuredOrigin || request.url);
+      if (originUrl.protocol !== "https:" && originUrl.protocol !== "http:") {
+        throw new Error("Unsupported public site URL protocol");
+      }
+      publicOrigin = originUrl.origin;
+    } catch {
+      publicOrigin = new URL(request.url).origin;
+    }
+
+    return {
+      book,
+      canonicalUrl: new URL(`/books/${encodeURIComponent(book.id)}`, publicOrigin).toString(),
+      coverUrl: new URL(book.cover, publicOrigin).toString(),
+    };
+  });
+
 export const getStoryChapter = createServerFn({ method: "GET" })
   .inputValidator((input: { bookId: string; chapterIndex: number }) => input)
   .handler(async ({ data }) => {
