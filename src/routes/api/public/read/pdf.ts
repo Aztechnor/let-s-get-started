@@ -40,6 +40,8 @@ export const Route = createFileRoute("/api/public/read/pdf")({
             "content-type": "application/pdf",
             "content-disposition": `inline; filename="${path}"`,
             "cache-control": "private, no-store",
+            "x-frame-options": "SAMEORIGIN",
+            "content-security-policy": "frame-ancestors 'self'",
           },
         });
       },
