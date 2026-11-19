@@ -123,6 +123,7 @@ function ReadPage() {
   const [preferences, setPreferences] = useState<ReaderPreferences>({ ...DEFAULT_READER_PREFERENCES });
   const [bookmarks, setBookmarks] = useState<ReaderBookmark[]>([]);
   const [localStateReady, setLocalStateReady] = useState(false);
+  const [readerMode, setReaderMode] = useState<"reflow" | "original">("reflow");
 
   const getMeFn = useServerFn(getMe);
   const getLibraryFn = useServerFn(getLibrary);
@@ -166,6 +167,9 @@ function ReadPage() {
   }, [me?.authenticated, getLibraryFn, getProgressFn]);
 
   const book = books.find((entry) => entry.id === bookId) ?? null;
+  // start_pdf_page/end_pdf_page are zero-based PDF page offsets in the extracted book manifest.
+  const originalPdfStartPage = story ? Math.max(1, story.chapter.start_pdf_page + 1) : 1;
+  const originalPdfEndPage = story ? Math.max(originalPdfStartPage, story.chapter.end_pdf_page + 1) : 1;
   const currentBookmarkId = book && story ? `${book.id}:${story.chapter.index}` : "";
   const isBookmarked = currentBookmarkId ? bookmarks.some((entry) => entry.id === currentBookmarkId) : false;
   const palette = themeClasses[preferences.theme];
@@ -545,20 +549,80 @@ function ReadPage() {
                 </div>
               </header>
 
-              <div
-                className="mx-auto mt-8 space-y-6"
-                style={{
-                  maxWidth: "720px",
-                  fontSize: `${preferences.fontSize}px`,
-                  lineHeight: lineHeightValues[preferences.lineSpacing],
-                  fontFamily: preferences.font === "serif" ? "Georgia, 'Times New Roman', serif" : "Inter, 'Segoe UI', Arial, sans-serif",
-                  color: preferences.theme === "night" ? "#e1dbcf" : preferences.theme === "sepia" ? "#574734" : "#3e4740",
-                }}
-              >
-                {story.chapter.text.split(/\n\n+/).map((paragraph, index) => (
-                  <p key={index} className="mb-0 whitespace-pre-line">{paragraph}</p>
-                ))}
+              <div className={`mt-7 flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-center sm:justify-between ${palette.border}`}>
+                <div>
+                  <p className={`text-[9px] font-semibold uppercase tracking-[0.18em] ${palette.muted}`}>Edition view</p>
+                  <p className={`mt-1 text-xs ${palette.muted}`}>
+                    {readerMode === "original"
+                      ? "Original page layout · artwork and typography preserved"
+                      : "Comfort reading · adjustable type and spacing"}
+                  </p>
+                </div>
+                <div role="group" aria-label="Choose reading view" className={`inline-flex rounded-full border p-1 ${palette.border}`}>
+                  <button
+                    type="button"
+                    aria-pressed={readerMode === "reflow"}
+                    onClick={() => setReaderMode("reflow")}
+                    className={`rounded-full px-4 py-2 text-xs font-medium transition ${readerMode === "reflow" ? palette.accent : palette.muted}`}
+                  >
+                    Comfort text
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={readerMode === "original"}
+                    onClick={() => setReaderMode("original")}
+                    className={`rounded-full px-4 py-2 text-xs font-medium transition ${readerMode === "original" ? palette.accent : palette.muted}`}
+                  >
+                    Original pages
+                  </button>
+                </div>
               </div>
+
+              {readerMode === "original" ? (
+                <section className="mt-6 space-y-3" aria-label="Original print edition">
+                  <div className={`flex flex-wrap items-center justify-between gap-3 text-xs ${palette.muted}`}>
+                    <p>
+                      Starting at PDF page {originalPdfStartPage}
+                      {originalPdfEndPage > originalPdfStartPage
+                        ? ` · through page ${originalPdfEndPage}`
+                        : ""}
+                    </p>
+                    <a
+                      href={`/api/public/read/pdf?book=${encodeURIComponent(story.book.id)}#page=${originalPdfStartPage}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-4 hover:opacity-80"
+                    >
+                      Open full edition in a new tab ↗
+                    </a>
+                  </div>
+                  <iframe
+                    key={`${story.book.id}:${story.chapter.index}:${originalPdfStartPage}`}
+                    title={`${story.book.title} — original print edition`}
+                    src={`/api/public/read/pdf?book=${encodeURIComponent(story.book.id)}#page=${originalPdfStartPage}&zoom=page-width`}
+                    className={`h-[76vh] min-h-[560px] w-full rounded-xl border bg-white shadow-sm sm:min-h-[680px] ${palette.border}`}
+                    loading="lazy"
+                  />
+                  <p className={`text-center text-[10px] leading-5 ${palette.muted}`}>
+                    This is the source PDF page layout, not a recreated approximation. Use the PDF controls to zoom and move between pages.
+                  </p>
+                </section>
+              ) : (
+                <div
+                  className="mx-auto mt-8 space-y-6"
+                  style={{
+                    maxWidth: "720px",
+                    fontSize: `${preferences.fontSize}px`,
+                    lineHeight: lineHeightValues[preferences.lineSpacing],
+                    fontFamily: preferences.font === "serif" ? "Georgia, 'Times New Roman', serif" : "Inter, 'Segoe UI', Arial, sans-serif",
+                    color: preferences.theme === "night" ? "#e1dbcf" : preferences.theme === "sepia" ? "#574734" : "#3e4740",
+                  }}
+                >
+                  {story.chapter.text.split(/\n\n+/).map((paragraph, index) => (
+                    <p key={index} className="mb-0 whitespace-pre-line">{paragraph}</p>
+                  ))}
+                </div>
+              )}
 
               <p className={`mt-12 text-center text-[10px] italic ${palette.muted}`}>
                 Your place in this chapter is remembered on this device.
