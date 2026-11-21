@@ -117,7 +117,6 @@ describe("session utility functions", () => {
   });
 });
 
-
 describe("signed session tokens", () => {
   const originalSecret = process.env["SESSION_SECRET"];
 
@@ -128,23 +127,31 @@ describe("signed session tokens", () => {
 
   it("requires a configured secret of at least 32 bytes", async () => {
     delete process.env["SESSION_SECRET"];
-    await expect(signSessionPayload({
-      email: "reader@example.com",
-      role: "reader",
-      exp: Math.floor(Date.now() / 1000) + 60,
-    })).rejects.toThrow("SESSION_SECRET");
+    await expect(
+      signSessionPayload({
+        email: "reader@example.com",
+        role: "reader",
+        exp: Math.floor(Date.now() / 1000) + 60,
+      }),
+    ).rejects.toThrow("SESSION_SECRET");
 
     process.env["SESSION_SECRET"] = "too-short";
-    await expect(signSessionPayload({
-      email: "reader@example.com",
-      role: "reader",
-      exp: Math.floor(Date.now() / 1000) + 60,
-    })).rejects.toThrow("at least 32");
+    await expect(
+      signSessionPayload({
+        email: "reader@example.com",
+        role: "reader",
+        exp: Math.floor(Date.now() / 1000) + 60,
+      }),
+    ).rejects.toThrow("at least 32");
   });
 
   it("signs and verifies a valid reader session", async () => {
     process.env["SESSION_SECRET"] = "test-session-secret-that-is-at-least-32-bytes";
-    const payload = { email: "reader@example.com", role: "reader" as const, exp: Math.floor(Date.now() / 1000) + 60 };
+    const payload = {
+      email: "reader@example.com",
+      role: "reader" as const,
+      exp: Math.floor(Date.now() / 1000) + 60,
+    };
     const token = await signSessionPayload(payload);
     await expect(verifySessionToken(token)).resolves.toMatchObject(payload);
   });
@@ -158,7 +165,8 @@ describe("signed session tokens", () => {
     });
     const [body, signature] = token.split(".");
     const firstSignatureChar = signature?.[0] ?? "a";
-    const tamperedSignature = (firstSignatureChar === "a" ? "b" : "a") + (signature?.slice(1) ?? "");
+    const tamperedSignature =
+      (firstSignatureChar === "a" ? "b" : "a") + (signature?.slice(1) ?? "");
     await expect(verifySessionToken(`${body}.${tamperedSignature}`)).resolves.toBeNull();
   });
 

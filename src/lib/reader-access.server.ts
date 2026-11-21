@@ -1,8 +1,12 @@
 import type { SessionPayload } from "./session.server";
 import { getAdminDb } from "./storyhouse-db.server";
 
-/** Share whitelist checks between protected server functions and file routes. */
-export async function isAuthorizedReaderSession(session: SessionPayload): Promise<boolean> {
+/**
+ * Checks that a verified session belongs to an admin or a currently active
+ * whitelisted reader. Fails closed on unknown roles or lookup failures.
+ */
+export async function isAuthorizedReaderSession(session: SessionPayload | null): Promise<boolean> {
+  if (!session) return false;
   if (session.role === "admin") return true;
   if (session.role !== "reader") return false;
 
@@ -13,5 +17,6 @@ export async function isAuthorizedReaderSession(session: SessionPayload): Promis
     .eq("email", session.email)
     .maybeSingle();
 
-  return !error && data?.active === true;
+  if (error) return false;
+  return Boolean(data?.active);
 }

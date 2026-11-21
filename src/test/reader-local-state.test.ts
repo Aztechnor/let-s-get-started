@@ -25,13 +25,15 @@ describe("reader preferences", () => {
   });
 
   it("keeps supported settings and clamps font size", () => {
-    expect(parseReaderPreferences({
-      theme: "night",
-      font: "sans",
-      fontSize: 99,
-      lineSpacing: "airy",
-      contentWidth: "wide",
-    })).toEqual({
+    expect(
+      parseReaderPreferences({
+        theme: "night",
+        font: "sans",
+        fontSize: 99,
+        lineSpacing: "airy",
+        contentWidth: "wide",
+      }),
+    ).toEqual({
       theme: "night",
       font: "sans",
       fontSize: 30,
@@ -50,12 +52,9 @@ describe("reader preferences", () => {
 
 describe("reader bookmarks", () => {
   it("rejects malformed entries and duplicate ids", () => {
-    expect(parseReaderBookmarks([
-      bookmark,
-      bookmark,
-      { id: "bad", bookId: "book" },
-      null,
-    ])).toEqual([bookmark]);
+    expect(parseReaderBookmarks([bookmark, bookmark, { id: "bad", bookId: "book" }, null])).toEqual(
+      [bookmark],
+    );
   });
 
   it("adds then removes a bookmark by chapter identity", () => {

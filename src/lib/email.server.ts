@@ -41,12 +41,12 @@ export interface SmtpConfig {
  */
 function getEmailProvider(): EmailProvider {
   const provider = (process.env["EMAIL_PROVIDER"] ?? "").toLowerCase() as EmailProvider;
-  
+
   // In production, default to lovable if using Lovable hosting
   if (import.meta.env.PROD && !provider) {
     return "lovable";
   }
-  
+
   return provider || "none";
 }
 
@@ -79,7 +79,7 @@ function isValidEmail(email: string): boolean {
  */
 export async function sendLoginCode(
   recipient: string,
-  code: string
+  code: string,
 ): Promise<{ delivered: boolean; devCode?: string }> {
   // Validate inputs
   if (!recipient || !code) {
@@ -105,7 +105,7 @@ export async function sendLoginCode(
   // Production mode: require email configuration
   if (import.meta.env.PROD && provider === "none") {
     throw new EmailNotConfiguredError(
-      "Email delivery is not configured. Set EMAIL_PROVIDER environment variable."
+      "Email delivery is not configured. Set EMAIL_PROVIDER environment variable.",
     );
   }
 
@@ -134,7 +134,7 @@ export async function sendLoginCode(
           return { delivered: false, devCode: code };
         }
         throw new EmailNotConfiguredError(
-          "No email provider configured. Set EMAIL_PROVIDER environment variable."
+          "No email provider configured. Set EMAIL_PROVIDER environment variable.",
         );
     }
   } catch (error) {
@@ -149,11 +149,11 @@ export async function sendLoginCode(
  */
 async function sendWithLovable(
   recipient: string,
-  code: string
+  code: string,
 ): Promise<{ delivered: boolean; devCode?: string }> {
   // Lovable's email service is automatically available in Lovable-hosted projects
   // The email template should be scaffolded in the Lovable editor
-  
+
   try {
     // Try to use Lovable's email API
     // This is a placeholder - Lovable's actual email API will be available
@@ -171,14 +171,12 @@ async function sendWithLovable(
           to: recipient,
           data: { code },
         }),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `Lovable email API error: ${response.status} ${JSON.stringify(errorData)}`
-      );
+      throw new Error(`Lovable email API error: ${response.status} ${JSON.stringify(errorData)}`);
     }
 
     console.log(`[Lovable Email] Code sent to ${recipient}`);
@@ -197,27 +195,20 @@ async function sendWithLovable(
 /**
  * Send email using Supabase's email service.
  */
-async function sendWithSupabase(
-  recipient: string,
-  code: string
-): Promise<{ delivered: boolean }> {
+async function sendWithSupabase(recipient: string, code: string): Promise<{ delivered: boolean }> {
   const { createClient } = await import("@supabase/supabase-js");
   const supabaseUrl = process.env["SUPABASE_URL"];
   const supabaseKey = process.env["SUPABASE_ANON_KEY"];
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required for this email provider.");
   }
-  
-  const supabase = createClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      db: { schema: "extensions" },
-    }
-  );
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    db: { schema: "extensions" },
+  });
 
   const fromEmail = process.env["EMAIL_FROM"] || "storyhouse@your-domain.com";
-  
+
   const { error } = await supabase.rpc("send_login_code_email", {
     to_email: recipient,
     code,
@@ -235,10 +226,7 @@ async function sendWithSupabase(
 /**
  * Send email using Resend.
  */
-async function sendWithResend(
-  recipient: string,
-  code: string
-): Promise<{ delivered: boolean }> {
+async function sendWithResend(recipient: string, code: string): Promise<{ delivered: boolean }> {
   const apiKey = process.env["RESEND_API_KEY"];
   const fromEmail = process.env["EMAIL_FROM"] || "storyhouse@your-domain.com";
 
@@ -286,9 +274,7 @@ async function sendWithResend(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      `Resend API error: ${response.status} ${JSON.stringify(errorData)}`
-    );
+    throw new Error(`Resend API error: ${response.status} ${JSON.stringify(errorData)}`);
   }
 
   console.log(`[Resend] Code sent to ${recipient}`);
@@ -298,10 +284,7 @@ async function sendWithResend(
 /**
  * Send email using Postmark.
  */
-async function sendWithPostmark(
-  recipient: string,
-  code: string
-): Promise<{ delivered: boolean }> {
+async function sendWithPostmark(recipient: string, code: string): Promise<{ delivered: boolean }> {
   const apiKey = process.env["POSTMARK_API_KEY"];
   const fromEmail = process.env["EMAIL_FROM"] || "storyhouse@your-domain.com";
 
@@ -343,9 +326,7 @@ async function sendWithPostmark(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      `Postmark API error: ${response.status} ${JSON.stringify(errorData)}`
-    );
+    throw new Error(`Postmark API error: ${response.status} ${JSON.stringify(errorData)}`);
   }
 
   console.log(`[Postmark] Code sent to ${recipient}`);
@@ -355,11 +336,10 @@ async function sendWithPostmark(
 /**
  * Send email using SMTP.
  */
-async function sendWithSmtp(
-  _recipient: string,
-  _code: string
-): Promise<{ delivered: boolean }> {
-  throw new EmailNotConfiguredError("SMTP delivery is not implemented. Configure Resend or Postmark.");
+async function sendWithSmtp(_recipient: string, _code: string): Promise<{ delivered: boolean }> {
+  throw new EmailNotConfiguredError(
+    "SMTP delivery is not implemented. Configure Resend or Postmark.",
+  );
 }
 
 /**

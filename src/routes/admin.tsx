@@ -29,21 +29,14 @@ import {
   getMe,
   logout,
 } from "@/lib/storyhouse.functions";
-import type {
-  AuditEntry,
-  ReaderProgressInfo,
-  ReaderRow,
-} from "@/lib/storyhouse.functions";
+import type { AuditEntry, ReaderProgressInfo, ReaderRow } from "@/lib/storyhouse.functions";
 import type { BulkInviteResult, BulkInviteStatus } from "@/lib/bulk-invitations";
 import { SiteHeader } from "@/components/site-chrome";
 import { toast, ToastHost } from "@/components/toast";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
-    meta: [
-      { title: "Admin — Storyhouse" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Admin — Storyhouse" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminPage,
 });
@@ -133,12 +126,14 @@ function AdminPage() {
       <div className="min-h-screen bg-background text-foreground">
         <ToastHost />
         <SiteHeader active="admin" />
-        <AdminLogin onSignedIn={() => {
-          setView("dashboard");
-          refresh().catch((error) =>
-            toast(error instanceof Error ? error.message : "Could not load the dashboard."),
-          );
-        }} />
+        <AdminLogin
+          onSignedIn={() => {
+            setView("dashboard");
+            refresh().catch((error) =>
+              toast(error instanceof Error ? error.message : "Could not load the dashboard."),
+            );
+          }}
+        />
       </div>
     );
   }
@@ -188,14 +183,20 @@ function AdminPage() {
             <div className="hidden text-right sm:block">
               <p className="text-xs font-medium text-[#55564f]">Last updated</p>
               <p className="mt-1 text-xs text-[#898578]">
-                {lastRefreshed ? lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Not yet"}
+                {lastRefreshed
+                  ? lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : "Not yet"}
               </p>
             </div>
             <button
               type="button"
-              onClick={() => refresh().catch((error) =>
-                toast(error instanceof Error ? error.message : "Could not refresh the dashboard."),
-              )}
+              onClick={() =>
+                refresh().catch((error) =>
+                  toast(
+                    error instanceof Error ? error.message : "Could not refresh the dashboard.",
+                  ),
+                )
+              }
               disabled={loading}
               className="inline-flex items-center gap-2 rounded-full border border-[#d8d4ca] bg-white px-4 py-2.5 text-sm font-medium text-[#45463f] transition hover:bg-[#eeece5] disabled:cursor-wait disabled:opacity-60"
             >
@@ -205,11 +206,34 @@ function AdminPage() {
           </div>
         </div>
 
-        <section aria-label="Reading room statistics" className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard icon={<Users className="h-4 w-4" />} label="Readers invited" value={summary?.total_readers ?? readers.length} detail="Across the reading room" />
-          <MetricCard icon={<UserCheck className="h-4 w-4" />} label="Active access" value={summary?.active_readers ?? activeReaders.length} detail="Currently allowed to sign in" />
-          <MetricCard icon={<BookOpen className="h-4 w-4" />} label="Currently reading" value={readingNow.length} detail="Readers with saved progress" />
-          <MetricCard icon={<Activity className="h-4 w-4" />} label="Stories available" value={summary?.story_count ?? 0} detail={`${summary?.book_count ?? 0} books in the collection`} />
+        <section
+          aria-label="Reading room statistics"
+          className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <MetricCard
+            icon={<Users className="h-4 w-4" />}
+            label="Readers invited"
+            value={summary?.total_readers ?? readers.length}
+            detail="Across the reading room"
+          />
+          <MetricCard
+            icon={<UserCheck className="h-4 w-4" />}
+            label="Active access"
+            value={summary?.active_readers ?? activeReaders.length}
+            detail="Currently allowed to sign in"
+          />
+          <MetricCard
+            icon={<BookOpen className="h-4 w-4" />}
+            label="Currently reading"
+            value={readingNow.length}
+            detail="Readers with saved progress"
+          />
+          <MetricCard
+            icon={<Activity className="h-4 w-4" />}
+            label="Stories available"
+            value={summary?.story_count ?? 0}
+            detail={`${summary?.book_count ?? 0} books in the collection`}
+          />
         </section>
 
         <div className="mt-9 flex flex-wrap items-center justify-between gap-4 border-b border-[#e2dfd6]">
@@ -217,17 +241,25 @@ function AdminPage() {
             <TabButton active={tab === "readers"} onClick={() => setTab("readers")}>
               <Users className="h-4 w-4" />
               Readers
-              <span className="rounded-full bg-[#ece9e1] px-2 py-0.5 text-[10px] tabular-nums">{readers.length}</span>
+              <span className="rounded-full bg-[#ece9e1] px-2 py-0.5 text-[10px] tabular-nums">
+                {readers.length}
+              </span>
             </TabButton>
             <TabButton active={tab === "activity"} onClick={() => setTab("activity")}>
               <Activity className="h-4 w-4" />
               Activity
-              <span className="rounded-full bg-[#ece9e1] px-2 py-0.5 text-[10px] tabular-nums">{summary?.recent_activity.length ?? 0}</span>
+              <span className="rounded-full bg-[#ece9e1] px-2 py-0.5 text-[10px] tabular-nums">
+                {summary?.recent_activity.length ?? 0}
+              </span>
             </TabButton>
           </div>
-          <BulkInviteForm onAdded={() => refresh().catch((error) =>
-            toast(error instanceof Error ? error.message : "Could not refresh readers."),
-          )} />
+          <BulkInviteForm
+            onAdded={() =>
+              refresh().catch((error) =>
+                toast(error instanceof Error ? error.message : "Could not refresh readers."),
+              )
+            }
+          />
         </div>
 
         {tab === "readers" ? (
@@ -251,12 +283,14 @@ function AdminPage() {
                   />
                 </div>
                 <div className="inline-flex items-center gap-1 self-start rounded-full border border-[#ddd9d0] bg-white p-1">
-                  {([
-                    ["all", "All"],
-                    ["active", "Active"],
-                    ["revoked", "Revoked"],
-                    ["reading", "Reading"],
-                  ] as const).map(([value, label]) => (
+                  {(
+                    [
+                      ["all", "All"],
+                      ["active", "Active"],
+                      ["revoked", "Revoked"],
+                      ["reading", "Reading"],
+                    ] as const
+                  ).map(([value, label]) => (
                     <button
                       key={value}
                       type="button"
@@ -292,10 +326,15 @@ function AdminPage() {
                     <Filter className="h-5 w-5" />
                   </div>
                   <p className="mt-4 text-sm font-medium text-[#45463f]">No readers found</p>
-                  <p className="mt-1 text-xs text-[#918d82]">Try another search or change the access filter.</p>
+                  <p className="mt-1 text-xs text-[#918d82]">
+                    Try another search or change the access filter.
+                  </p>
                   <button
                     type="button"
-                    onClick={() => { setFilter(""); setReaderFilter("all"); }}
+                    onClick={() => {
+                      setFilter("");
+                      setReaderFilter("all");
+                    }}
                     className="mt-4 text-xs font-semibold text-[#64745c] underline underline-offset-4"
                   >
                     Clear filters
@@ -331,7 +370,9 @@ function MetricCard({
           {icon}
         </span>
       </div>
-      <p className="mt-4 font-serif text-4xl tabular-nums text-[#292a24]">{value.toLocaleString()}</p>
+      <p className="mt-4 font-serif text-4xl tabular-nums text-[#292a24]">
+        {value.toLocaleString()}
+      </p>
       <p className="mt-1 text-[11px] text-[#99958a]">{detail}</p>
     </div>
   );
@@ -390,7 +431,12 @@ function ReaderCard({
   };
 
   const removeReader = async () => {
-    if (!window.confirm(`Permanently remove ${reader.email} from the reading room? Their saved reading progress will also be removed.`)) return;
+    if (
+      !window.confirm(
+        `Permanently remove ${reader.email} from the reading room? Their saved reading progress will also be removed.`,
+      )
+    )
+      return;
     setBusy(true);
     try {
       await adminDeleteReader({ data: { email: reader.email } });
@@ -411,9 +457,13 @@ function ReaderCard({
             {initials || "R"}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[#373831]">{reader.display_name || "Unnamed reader"}</p>
+            <p className="truncate text-sm font-semibold text-[#373831]">
+              {reader.display_name || "Unnamed reader"}
+            </p>
             <p className="truncate text-xs text-[#918d82]">{reader.email}</p>
-            {reader.note && <p className="mt-1 truncate text-[11px] text-[#9d998e]">{reader.note}</p>}
+            {reader.note && (
+              <p className="mt-1 truncate text-[11px] text-[#9d998e]">{reader.note}</p>
+            )}
           </div>
         </div>
         <div className="min-w-0">
@@ -424,9 +474,14 @@ function ReaderCard({
                 <span className="shrink-0 tabular-nums text-[#8c897f]">{progress.percent}%</span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#eeece5]">
-                <div className="h-full rounded-full bg-[#829076] transition-all" style={{ width: `${Math.max(0, Math.min(100, progress.percent))}%` }} />
+                <div
+                  className="h-full rounded-full bg-[#829076] transition-all"
+                  style={{ width: `${Math.max(0, Math.min(100, progress.percent))}%` }}
+                />
               </div>
-              <p className="mt-1.5 text-[10px] text-[#9b978d]">Chapter {progress.chapter_index + 1} of {progress.chapter_count}</p>
+              <p className="mt-1.5 text-[10px] text-[#9b978d]">
+                Chapter {progress.chapter_index + 1} of {progress.chapter_count}
+              </p>
             </>
           ) : (
             <span className="text-xs text-[#aaa69c]">No saved progress yet</span>
@@ -436,13 +491,24 @@ function ReaderCard({
           {reader.last_login_at ? (
             <>
               <p>{new Date(reader.last_login_at).toLocaleDateString()}</p>
-              <p className="mt-0.5 text-[10px] text-[#a09c91]">{new Date(reader.last_login_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+              <p className="mt-0.5 text-[10px] text-[#a09c91]">
+                {new Date(reader.last_login_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
             </>
-          ) : <span className="text-[#aaa69c]">Never signed in</span>}
+          ) : (
+            <span className="text-[#aaa69c]">Never signed in</span>
+          )}
         </div>
         <div className="flex items-center justify-between gap-2 md:justify-end">
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${reader.active ? "bg-[#edf2e9] text-[#607455]" : "bg-[#f1efeb] text-[#8f8a80]"}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${reader.active ? "bg-[#7d956d]" : "bg-[#aaa59a]"}`} />
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${reader.active ? "bg-[#edf2e9] text-[#607455]" : "bg-[#f1efeb] text-[#8f8a80]"}`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${reader.active ? "bg-[#7d956d]" : "bg-[#aaa59a]"}`}
+            />
             {reader.active ? "Active" : "Revoked"}
           </span>
           <button
@@ -452,7 +518,9 @@ function ReaderCard({
             aria-label={`Manage ${reader.email}`}
             className="rounded-full border border-[#e2dfd6] p-2 text-[#77776f] transition hover:bg-[#f5f3ee]"
           >
-            <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+            />
           </button>
         </div>
       </div>
@@ -461,25 +529,55 @@ function ReaderCard({
           <div className="grid gap-6 lg:grid-cols-[1fr_1fr_auto]">
             <ReaderEditor reader={reader} onSaved={onRefresh} />
             <div className="rounded-xl border border-[#e8e5dc] bg-white p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#99958a]">Reader record</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#99958a]">
+                Reader record
+              </p>
               <dl className="mt-3 space-y-2 text-xs">
-                <div className="flex justify-between gap-3"><dt className="text-[#99958a]">Added</dt><dd className="text-right text-[#55564f]">{new Date(reader.added_at).toLocaleDateString()}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-[#99958a]">Invited by</dt><dd className="max-w-[65%] truncate text-right text-[#55564f]">{reader.added_by || "—"}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-[#99958a]">Latest progress</dt><dd className="text-right text-[#55564f]">{progress ? new Date(progress.updated_at).toLocaleDateString() : "None"}</dd></div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#99958a]">Added</dt>
+                  <dd className="text-right text-[#55564f]">
+                    {new Date(reader.added_at).toLocaleDateString()}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#99958a]">Invited by</dt>
+                  <dd className="max-w-[65%] truncate text-right text-[#55564f]">
+                    {reader.added_by || "—"}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#99958a]">Latest progress</dt>
+                  <dd className="text-right text-[#55564f]">
+                    {progress ? new Date(progress.updated_at).toLocaleDateString() : "None"}
+                  </dd>
+                </div>
               </dl>
               {progress && (
                 <div className="mt-4 rounded-lg bg-[#f5f4ef] p-3">
                   <p className="text-xs font-medium text-[#55564f]">{progress.book_title}</p>
-                  <p className="mt-1 text-[11px] text-[#8d897f]">Furthest reached: chapter {progress.furthest_index + 1} of {progress.chapter_count}</p>
+                  <p className="mt-1 text-[11px] text-[#8d897f]">
+                    Furthest reached: chapter {progress.furthest_index + 1} of{" "}
+                    {progress.chapter_count}
+                  </p>
                 </div>
               )}
             </div>
             <div className="flex flex-row gap-2 lg:flex-col">
-              <button type="button" disabled={busy} onClick={toggleAccess} className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#dcd8ce] bg-white px-3 py-2 text-xs font-medium text-[#55564f] transition hover:bg-[#f2f0e9] disabled:opacity-50">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={toggleAccess}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#dcd8ce] bg-white px-3 py-2 text-xs font-medium text-[#55564f] transition hover:bg-[#f2f0e9] disabled:opacity-50"
+              >
                 <ShieldCheck className="h-3.5 w-3.5" />
                 {reader.active ? "Revoke access" : "Restore access"}
               </button>
-              <button type="button" disabled={busy} onClick={removeReader} className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#ead5ce] bg-white px-3 py-2 text-xs font-medium text-[#a05e4c] transition hover:bg-[#fff7f3] disabled:opacity-50">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={removeReader}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#ead5ce] bg-white px-3 py-2 text-xs font-medium text-[#a05e4c] transition hover:bg-[#fff7f3] disabled:opacity-50"
+              >
                 <X className="h-3.5 w-3.5" />
                 Remove reader
               </button>
@@ -513,19 +611,42 @@ function ReaderEditor({ reader, onSaved }: { reader: ReaderRow; onSaved: () => P
 
   return (
     <form onSubmit={save} className="space-y-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#99958a]">Profile details</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#99958a]">
+        Profile details
+      </p>
       <label className="block">
         <span className="mb-1.5 block text-xs text-[#77776f]">Display name</span>
-        <input value={displayName} maxLength={100} onChange={(event) => setDisplayName(event.target.value)} placeholder="Reader name" className="w-full rounded-lg border border-[#e0dcd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#87947b]" />
+        <input
+          value={displayName}
+          maxLength={100}
+          onChange={(event) => setDisplayName(event.target.value)}
+          placeholder="Reader name"
+          className="w-full rounded-lg border border-[#e0dcd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#87947b]"
+        />
       </label>
       <label className="block">
         <span className="mb-1.5 block text-xs text-[#77776f]">Private admin note</span>
-        <textarea value={note} maxLength={250} rows={3} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for administrators" className="w-full resize-y rounded-lg border border-[#e0dcd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#87947b]" />
+        <textarea
+          value={note}
+          maxLength={250}
+          rows={3}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Optional note for administrators"
+          className="w-full resize-y rounded-lg border border-[#e0dcd2] bg-white px-3 py-2 text-sm outline-none focus:border-[#87947b]"
+        />
       </label>
       <div className="flex items-center justify-between gap-3">
         <span className="text-[10px] text-[#aaa69c]">{note.length}/250 characters</span>
-        <button type="submit" disabled={!changed || busy} className="inline-flex items-center gap-2 rounded-lg bg-[#394333] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#4b5944] disabled:cursor-not-allowed disabled:opacity-40">
-          {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+        <button
+          type="submit"
+          disabled={!changed || busy}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#394333] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#4b5944] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy ? (
+            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Check className="h-3.5 w-3.5" />
+          )}
           Save details
         </button>
       </div>
@@ -538,17 +659,24 @@ function ActivityPanel({ entries }: { entries: AuditEntry[] }) {
     <section className="pt-7">
       <div>
         <h2 className="font-serif text-2xl text-[#292a24]">Recent activity</h2>
-        <p className="mt-1 text-sm text-[#858278]">A record of access and reader-management events.</p>
+        <p className="mt-1 text-sm text-[#858278]">
+          A record of access and reader-management events.
+        </p>
       </div>
       <div className="mt-5 overflow-hidden rounded-2xl border border-[#e2dfd6] bg-white">
         {entries.map((entry) => (
-          <div key={entry.id} className="flex flex-col gap-2 border-b border-[#efede7] px-5 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+          <div
+            key={entry.id}
+            className="flex flex-col gap-2 border-b border-[#efede7] px-5 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+          >
             <div className="flex min-w-0 items-start gap-3">
               <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f1f0e9] text-[#77816d]">
                 <Activity className="h-4 w-4" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-[#45463f]">{entry.action.replaceAll("_", " ")}</p>
+                <p className="text-sm font-medium text-[#45463f]">
+                  {entry.action.replaceAll("_", " ")}
+                </p>
                 <p className="mt-1 truncate text-xs text-[#8e8a80]">
                   {entry.target_email || entry.actor_email}
                   {entry.detail ? ` · ${entry.detail}` : ""}
@@ -557,7 +685,12 @@ function ActivityPanel({ entries }: { entries: AuditEntry[] }) {
             </div>
             <div className="shrink-0 pl-11 text-[11px] text-[#99958a] sm:pl-0 sm:text-right">
               <p>{new Date(entry.created_at).toLocaleDateString()}</p>
-              <p className="mt-0.5">{new Date(entry.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+              <p className="mt-0.5">
+                {new Date(entry.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
             </div>
           </div>
         ))}
@@ -565,7 +698,9 @@ function ActivityPanel({ entries }: { entries: AuditEntry[] }) {
           <div className="px-6 py-16 text-center">
             <Clock3 className="mx-auto h-6 w-6 text-[#aaa69c]" />
             <p className="mt-3 text-sm font-medium text-[#55564f]">No activity recorded yet</p>
-            <p className="mt-1 text-xs text-[#99958a]">Reader-management events will appear here.</p>
+            <p className="mt-1 text-xs text-[#99958a]">
+              Reader-management events will appear here.
+            </p>
           </div>
         )}
       </div>
@@ -598,9 +733,13 @@ function AdminLogin({ onSignedIn }: { onSignedIn: () => void }) {
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e9ece4] text-[#64745c]">
           <ShieldCheck className="h-5 w-5" />
         </div>
-        <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8e8a80]">Private access</p>
+        <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8e8a80]">
+          Private access
+        </p>
         <h1 className="mt-2 font-serif text-3xl text-[#292a24]">Administrator sign-in</h1>
-        <p className="mt-2 text-sm leading-6 text-[#858278]">Sign in to manage the Storyhouse reading room.</p>
+        <p className="mt-2 text-sm leading-6 text-[#858278]">
+          Sign in to manage the Storyhouse reading room.
+        </p>
         <form onSubmit={submit} className="mt-7 space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-[#68695f]">Email address</span>
@@ -626,7 +765,11 @@ function AdminLogin({ onSignedIn }: { onSignedIn: () => void }) {
               className="w-full rounded-xl border border-[#dedad0] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#89967e] focus:ring-2 focus:ring-[#89967e]/15"
             />
           </label>
-          <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#394333] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#4b5944] disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#394333] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#4b5944] disabled:opacity-50"
+          >
             {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {busy ? "Checking access…" : "Enter administration"}
           </button>
@@ -650,7 +793,9 @@ function BulkInviteForm({ onAdded }: { onAdded: () => void }) {
       const response = await inviteFn({ data: { emails } });
       setResults(response.results);
       const invited = response.results.filter((result) => result.status === "invited").length;
-      const reactivated = response.results.filter((result) => result.status === "reactivated").length;
+      const reactivated = response.results.filter(
+        (result) => result.status === "reactivated",
+      ).length;
       const failed = response.results.filter((result) => result.status === "failed").length;
       toast(`${invited} invited · ${reactivated} restored · ${failed} failed`);
       if (invited || reactivated) await onAdded();
@@ -673,7 +818,12 @@ function BulkInviteForm({ onAdded }: { onAdded: () => void }) {
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="inline-flex items-center gap-2 rounded-full bg-[#394333] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b5944]">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-2 rounded-full bg-[#394333] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b5944]"
+      >
         <Mail className="h-4 w-4" />
         Invite readers
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -683,9 +833,16 @@ function BulkInviteForm({ onAdded }: { onAdded: () => void }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="font-serif text-xl text-[#292a24]">Invite readers</h3>
-              <p className="mt-1 text-xs leading-5 text-[#8b877d]">Add up to 100 email addresses. Existing revoked readers will be restored.</p>
+              <p className="mt-1 text-xs leading-5 text-[#8b877d]">
+                Add up to 100 email addresses. Existing revoked readers will be restored.
+              </p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close invitation panel" className="rounded-full p-1.5 text-[#99958a] hover:bg-[#f3f1eb]">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close invitation panel"
+              className="rounded-full p-1.5 text-[#99958a] hover:bg-[#f3f1eb]"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -693,23 +850,38 @@ function BulkInviteForm({ onAdded }: { onAdded: () => void }) {
             <textarea
               required
               value={emails}
-              onChange={(event) => { setEmails(event.target.value); setResults([]); }}
+              onChange={(event) => {
+                setEmails(event.target.value);
+                setResults([]);
+              }}
               placeholder="reader@example.com&#10;another@example.com"
               aria-label="Reader email addresses"
               rows={5}
               className="w-full resize-y rounded-xl border border-[#dedad0] bg-[#fdfcf9] px-3 py-3 text-sm outline-none focus:border-[#89967e]"
             />
-            <button type="submit" disabled={busy} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#394333] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b5944] disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={busy}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#394333] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#4b5944] disabled:opacity-50"
+            >
               {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
               {busy ? "Processing invitations…" : "Process invitations"}
             </button>
           </form>
           {results.length > 0 && (
-            <ul aria-label="Invitation results" className="mt-4 max-h-52 divide-y divide-[#efede7] overflow-y-auto rounded-xl border border-[#ece9e1]">
+            <ul
+              aria-label="Invitation results"
+              className="mt-4 max-h-52 divide-y divide-[#efede7] overflow-y-auto rounded-xl border border-[#ece9e1]"
+            >
               {results.map((result) => (
-                <li key={result.email} className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
+                <li
+                  key={result.email}
+                  className="flex items-center justify-between gap-3 px-3 py-2 text-xs"
+                >
                   <span className="min-w-0 break-all text-[#5f6058]">{result.email}</span>
-                  <span className={`shrink-0 ${result.status === "invited" || result.status === "reactivated" ? "font-semibold text-[#64745c]" : "text-[#99958a]"}`}>
+                  <span
+                    className={`shrink-0 ${result.status === "invited" || result.status === "reactivated" ? "font-semibold text-[#64745c]" : "text-[#99958a]"}`}
+                  >
                     {labels[result.status]}
                   </span>
                 </li>
